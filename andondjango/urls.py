@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import TemplateView
 from rest_framework.schemas import get_schema_view
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
 
 
@@ -41,4 +42,6 @@ urlpatterns = [
     ), name='openapi-schema'),
 
 ]
+
+urlpatterns += staticfiles_urlpatterns()
 

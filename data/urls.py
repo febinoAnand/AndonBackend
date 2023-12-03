@@ -1,14 +1,27 @@
 from django.urls import path, include
-from .views import ProblemViewSet, RawDataViewset, LastProblemViewSet
+from .views import \
+    ProblemViewSet, \
+    RawDataViewset, \
+    LastProblemViewSet, \
+    RawGetMethod,\
+    LiveDataViewset
+
 from rest_framework import routers
-from . import views
+
 
 router = routers.DefaultRouter()
-# router.register('problem',ProblemViewSet)
+router.register('problem',ProblemViewSet)
+router.register('lastproblem',LastProblemViewSet)
 router.register('', RawDataViewset)
-# router.register('lastproblem',LastProblemViewSet)
+
+
 
 urlpatterns = [
+    path('livedata',LiveDataViewset.as_view()),
+    path('rawdata',RawGetMethod.as_view()),
     path('',include(router.urls)),
+
+
+
     # path('',)
 ]

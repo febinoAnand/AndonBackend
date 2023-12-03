@@ -1,49 +1,100 @@
 import json
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, views
 from rest_framework.response import Response
 from .models import RawData, ProblemData, LastProblemData
-from .serializers import RawSerializer, ProblemDataSerializer, LastProblemDataSerializer
+from .serializers import RawSerializer, ProblemDataSerializer, LastProblemDataSerializer, RawSerializerWithDateTime
 from events.models import Event, EventGroup
+from events.serializers import EventSerializer
 from devices.models import Device, Machine, Token
 import datetime
+from django.core import serializers
+
+
+class RawGetMethod(views.APIView):
+    schema = None
+    def get(self,request):
+        currentRawData = RawData.objects.all().order_by('-pk')
+        jsonRawData = serializers.serialize('json', currentRawData)
+
+        # rawDataSerializer = RawSerializerWithDateTime(currentRawData,many=True)
+
+        # print (rawDataSerializer.data['datetime'])
+
+        # updateDateTime = {'datetime':'testing'}
+        # updateDateTime.update(rawDataSerializer.data)
+
+        # return Response(rawDataSerializer.data, status=status.HTTP_201_CREATED)
+        return Response(json.loads(jsonRawData), status=status.HTTP_201_CREATED)
+
+class LiveDataViewset(views.APIView):
+    schema = None
+
+    def get(self,request):
+        responseArray = []
+        machines = Machine.objects.all()
+        for machine in machines:
+            print (machine)
+            machineEvent = {}
+            machineEvent["machineID"] = machine.machineID
+            try:
+                currentMachineProblem = ProblemData.objects.filter(machineID=machine).order_by('-pk')[0]
+                currentEvent = Event.objects.get(eventID = currentMachineProblem.eventID)
+                currentEventSerializer = EventSerializer(currentEvent,many=False)
+                jsonCurrentEvent = json.dumps(currentEventSerializer.data)
+                machineEvent['event'] = json.loads(jsonCurrentEvent)
+            except IndexError as indexerr:
+                machineEvent['event'] = {}
+            except Exception as e:
+                machineEvent['event'] = {}
+                print(e)
+            responseArray.append(machineEvent)
+
+
+        print (responseArray)
+        return Response(responseArray,status=status.HTTP_200_OK)
+        # return Response({"status":"working fine"},status=status.HTTP_200_OK)
 
 
 # Create your views here.
 class RawDataViewset(viewsets.ModelViewSet):
     serializer_class = RawSerializer
     queryset = RawData.objects.all()
-    http_method_names = ['get','post']
-
-    # def get_serializer(self, *args, **kwargs):
-    #     return RawSerializer(*args, **kwargs)
+    http_method_names = ['post']
 
     def create(self,request,*args,**kwargs):
         res = request.body
-        print (res)
+        # print (res)
 
         # if not RawSerializer(data=request.data).is_valid():
         #     errorJson = {"status":"Not valid JSON"}
         #     return Response(errorJson,status=status.HTTP_201_CREATED)
 
-
-
         try:
+
+            #sample ---- > {"date": "2023-08-26","time": "08:26:17","eventID": "EVE103","machineID": "MAC101","eventGroupID": "EG100"}
             jsondata = json.loads(res)
-            currentEvents = Event.objects.get(eventID=jsondata["eventID"])
-            currentDevices = Device.objects.get(deviceID = jsondata['deviceID'])
+            tokenString = request.META.get("HTTP_DEVICEAUTHORIZATION")
+            currentToken = Token.objects.get(token = tokenString)
+            currentEvent = Event.objects.get(eventID=jsondata["eventID"])
             currentGroup = EventGroup.objects.get(groupID = jsondata['eventGroupID'])
+            currentMachine = Machine.objects.get(machineID = jsondata['machineID'])
+            currentDevice = Device.objects.get(deviceID=currentToken.deviceID)
 
 
-            currentToken = request.META.get("HTTP_DEVICEAUTHORIZATION")
+            # for event in currentGroup.events:
+            #     if event == currentEvent:
+
+            #TODO validate event and eventGroup
 
             # if currentToken == None:
             #     errorJson = {"status":"Authentication Error. Add Token in the header in a name of 'DEVICEAUTHORIZATION'"}
             #     return Response(errorJson,status=status.HTTP_201_CREATED)
 
-            savedToken = Token.objects.get(deviceID = currentDevices)
-            if not currentToken == savedToken.token:
-                errorJson = {"status":"Authentication Error. Invalid Token"}
-                return Response(errorJson,status=status.HTTP_201_CREATED)
+
+            # savedToken = Token.objects.get(deviceID = currentDevices)
+            # if not currentToken == savedToken.token:
+            #     errorJson = {"status":"Authentication Error. Invalid Token"}
+            #     return Response(errorJson,status=status.HTTP_201_CREATED)
 
 
             # print (currentEvents)
@@ -53,15 +104,15 @@ class RawDataViewset(viewsets.ModelViewSet):
             RawData.objects.create(
                         date = jsondata['date'],
                         time = jsondata['time'],
-                        eventID = currentEvents,
-                        deviceID = currentDevices,
+                        eventID = currentEvent,
+                        deviceID = currentDevice,
+                        machineID = currentMachine,
                         eventGroupID = currentGroup,
                         data = jsondata
                     )
 
-            currentMachine = Machine.objects.get(device = currentDevices)
+            # currentMachine = Machine.objects.get(device = currentDevice)
             # print ("CurrentMachine--", currentMachine)
-
 
 
             eventTime = jsondata['date'] +" "+ jsondata['time']
@@ -71,11 +122,11 @@ class RawDataViewset(viewsets.ModelViewSet):
             # currentEventGroup = EventGroup.objects.filter(events__in = [currentEvents])
             # print ("currentEventGroup--", currentEventGroup)
 
-            currentEventProblemType = currentEvents.problem.problemType
+            currentEventProblemType = currentEvent.problem.problemType
             # print ("currentEventProblemType---",currentEventProblemType)
 
             try:
-                currentProbleData = ProblemData.objects.filter(eventGroupID = currentGroup, deviceID = currentDevices).order_by('-id')[0]
+                currentProbleData = ProblemData.objects.filter(eventGroupID = currentGroup, deviceID = currentDevice).order_by('-id')[0]
                 # print("currentProbleDataIssueTime",currentProbleData.issueTime)
                 # print("currentProbleDataEndTime",currentProbleData.endTime)
             except Exception as e:
@@ -87,15 +138,15 @@ class RawDataViewset(viewsets.ModelViewSet):
                 LastProblemData.objects.create(
                             date = jsondata['date'],
                             time = jsondata['time'],
-                            eventID = currentEvents,
+                            eventID = currentEvent,
                             eventGroupID = currentGroup,
                             machineID = currentMachine,
-                            deviceID = currentDevices,
+                            deviceID = currentDevice,
                             endTime = resEventTime,
                         )
 
                 if currentProbleData is not None and currentProbleData.endTime == None :
-                    currentProbleData.eventID = currentEvents
+                    currentProbleData.eventID = currentEvent
                     currentProbleData.endTime = resEventTime
                     currentProbleData.save()
 
@@ -105,10 +156,10 @@ class RawDataViewset(viewsets.ModelViewSet):
                 LastProblemData.objects.create(
                     date = jsondata['date'],
                     time = jsondata['time'],
-                    eventID = currentEvents,
+                    eventID = currentEvent,
                     eventGroupID = currentGroup,
                     machineID = currentMachine,
-                    deviceID = currentDevices,
+                    deviceID = currentDevice,
                     acknowledgeTime = resEventTime,
                 )
 
@@ -120,10 +171,10 @@ class RawDataViewset(viewsets.ModelViewSet):
                 LastProblemData.objects.create(
                     date = jsondata['date'],
                     time = jsondata['time'],
-                    eventID = currentEvents,
+                    eventID = currentEvent,
                     eventGroupID = currentGroup,
                     machineID = currentMachine,
-                    deviceID = currentDevices,
+                    deviceID = currentDevice,
                     issueTime = resEventTime,
                 )
 
@@ -132,16 +183,16 @@ class RawDataViewset(viewsets.ModelViewSet):
                     ProblemData.objects.create(
                         date = jsondata['date'],
                         time = jsondata['time'],
-                        eventID = currentEvents,
+                        eventID = currentEvent,
                         eventGroupID = currentGroup,
                         machineID = currentMachine,
-                        deviceID = currentDevices,
+                        deviceID = currentDevice,
                         issueTime = resEventTime,
                     )
                 elif currentProbleData is not None or currentProbleData.endTime is None:
                     currentProbleData.date = jsondata['date']
                     currentProbleData.time = jsondata['time']
-                    currentProbleData.eventID = currentEvents
+                    currentProbleData.eventID = currentEvent
                     currentProbleData.issueTime = resEventTime
                     currentProbleData.save()
 
@@ -178,10 +229,12 @@ class RawDataViewset(viewsets.ModelViewSet):
 
 
 class ProblemViewSet(viewsets.ModelViewSet):
+    schema = None
     serializer_class = ProblemDataSerializer
-    queryset = ProblemData.objects.all()
+    queryset = ProblemData.objects.all().order_by('-pk')
 
 class LastProblemViewSet(viewsets.ModelViewSet):
+    schema = None
     serializer_class = LastProblemDataSerializer
-    queryset = LastProblemData.objects.all()
+    queryset = LastProblemData.objects.all().order_by('-pk')
 

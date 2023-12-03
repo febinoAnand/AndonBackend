@@ -1,2 +1,2 @@
-from mqttConnection import mqtt
-mqtt.client.loop_start()
+# from mqttConnection import mqtt
+# mqtt.client.loop_start()

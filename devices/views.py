@@ -1,3 +1,4 @@
+import json
 import math
 import random
 
@@ -5,28 +6,44 @@ from rest_framework import viewsets, status, views
 
 from rest_framework.response import Response
 from .models import *
-from .serializers import MachineSerializer, DeviceSerializer, RFIDSerializer, UnRegisteredSerializer, VerifyDeviceSerializer, GetTokenSerializer
+from .serializers import MachineSerializer, \
+    DeviceSerializer, \
+    RFIDSerializer, \
+    UnRegisteredSerializer, \
+    VerifyDeviceSerializer,\
+    GetTokenSerializer,\
+    UnRegisteredGetMethodSerializer
 from django.shortcuts import render
 from django.views import View
 from django.http import HttpResponse
 import uuid
 from django.db.utils import IntegrityError
+from django.core import serializers
 
 
 # Create your views here.
 class MachineViewSet(viewsets.ModelViewSet):
     serializer_class = MachineSerializer
     queryset = Machine.objects.all()
+    schema = None
 
+
+    def list(self,request, *args,**kwargs):
+        queryset = Machine.objects.all().order_by("device__deviceID")
+        serializers = MachineSerializer(queryset,many=True)
+        # res = {"message":"working fine"}
+        return Response(serializers.data,status=status.HTTP_200_OK)
     # def machine123(self,request,pk=None):
     #     res = {"message":"working fine"}
     #     return Response(res,status=status.HTTP_200_OK)
+
+
 
     def create(self,request,pk=None):
         # print(request.data)
         reqData = request.data
         # res = {"message":"working fine"}
-        hmiID = reqData["deviceID"]
+        # hmiID = reqData["deviceID"]
         DeviceData = Device.objects.get(id=reqData["Device"]["id"])
         # print (hmiID)
         Machine.objects.create(machineID = reqData['machineID'],
@@ -34,13 +51,13 @@ class MachineViewSet(viewsets.ModelViewSet):
                                manufacture = reqData['manufacture'],
                                model = reqData['model'],
                                line = reqData['line'],
-                               HMIDevice = DeviceData)
+                               device = DeviceData)
+
         return Response(reqData,status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         # print (request.data)
         res = request.data
-
         machine = Machine.objects.get(id=res["id"])
         machine.machineID=res["machineID"]
         machine.model = res["model"]
@@ -55,7 +72,7 @@ class MachineViewSet(viewsets.ModelViewSet):
 class DeviceViewSet(viewsets.ModelViewSet):
     serializer_class = DeviceSerializer
     queryset = Device.objects.all()
-    # http_method_names = ['get','post','delete']
+    schema = None
 
 class RFIDViewSet(viewsets.ModelViewSet):
     serializer_class = RFIDSerializer
@@ -64,17 +81,56 @@ class RFIDViewSet(viewsets.ModelViewSet):
 class UnRegisteredViewSet(viewsets.ModelViewSet):
     serializer_class = UnRegisteredSerializer
     queryset = UnRegisteredDevice.objects.all()
-    http_method_names = ['post']
+    http_method_names = ['get']
+    schema = None
+    # def list(self, request, *args, **kwargs):
+    #     query = UnRegisteredDevice.objects.all()
+    #     serializers_data = UnRegisteredGetMethodSerializer(query, many=True)
+    #     return Response(serializers_data.data,status = status.HTTP_200_OK)
 
-    def create(self, request, *args, **kwargs):
+
+    # def create(self, request, *args, **kwargs):
+    #     res = request.data
+    #     print (res)
+    #     generatedUUID = uuid.uuid4()
+    #     generatedOTP = generateSixDigitOTP()
+    #     print ("OTP--->",generatedOTP)
+    #     print ("Session ID--->",generatedUUID)
+    #
+    #
+    #     try:
+    #         if Device.objects.filter(deviceID = res["deviceID"]).exists():
+    #             jsonResponse = {"deviceID":res["deviceID"],"staus":"Device Already Registered"}
+    #         else:
+    #             UnRegisteredDevice.objects.create(
+    #                 sessionID = generatedUUID,
+    #                 deviceID = res["deviceID"],
+    #                 devicePassword = res["devicePassword"],
+    #                 model = res["model"],
+    #                 hardwareVersion = res["hardwareVersion"],
+    #                 softwareVersion = res["softwareVersion"],
+    #                 OTP = generatedOTP
+    #             )
+    #             jsonResponse = {"deviceID":res["deviceID"],"sessionID":str(generatedUUID),"staus":"OTP was generated in the dashboard. Use sessionID to register the device"}
+    #     except IntegrityError as Ie:
+    #         jsonResponse = {"deviceID":res["deviceID"],"staus":"Device ID already Pending for Verification"}
+    #
+    #     return Response(jsonResponse,status=status.HTTP_201_CREATED)
+
+class UnRegisterViewSetPostMethod(views.APIView):
+
+    def get_serializer(self,*args, **kwargs):
+        return UnRegisteredGetMethodSerializer(*args, **kwargs)
+
+    def post(self,request):
         res = request.data
         print (res)
 
         generatedUUID = uuid.uuid4()
         generatedOTP = generateSixDigitOTP()
 
-        print ("OTP--->",generatedOTP)
-        print ("Session ID--->",generatedUUID)
+        # print ("OTP--->",generatedOTP)
+        # print ("Session ID--->",generatedUUID)
 
 
         try:
@@ -95,6 +151,7 @@ class UnRegisteredViewSet(viewsets.ModelViewSet):
             jsonResponse = {"deviceID":res["deviceID"],"staus":"Device ID already Pending for Verification"}
 
         return Response(jsonResponse,status=status.HTTP_201_CREATED)
+
 
 class TokenAuthentication(views.APIView):
     def get_serializer(self,*args, **kwargs):

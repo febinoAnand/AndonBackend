@@ -15,6 +15,11 @@ class MachineSerializer(serializers.ModelSerializer):
         model = Machine
         fields = ('id','machineID','name','manufacture','model','line','device')
 
+
+class MachineWithoutDeviceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Machine
+        fields = ('id','machineID','name','manufacture','model','line')
     # def create(self, validated_data):
     #     print("trying to create")
     #     print(validated_data)
@@ -23,6 +28,7 @@ class MachineSerializer(serializers.ModelSerializer):
     #
     # def update(self, instance, validated_data):
     #     print ("tryin to update")
+
 
 
 class RFIDSerializer(serializers.ModelSerializer):
@@ -38,15 +44,25 @@ class RFIDSerializer(serializers.ModelSerializer):
 class UnRegisteredSerializer(serializers.ModelSerializer):
     class Meta:
         model = UnRegisteredDevice
-        # fields = '__all__'
+        fields = ('sessionID','deviceID','devicePassword','model','hardwareVersion','softwareVersion','OTP')
+
+class UnRegisteredGetMethodSerializer(serializers.Serializer):
+    deviceID = serializers.CharField()
+    model = serializers.CharField()
+    hardwareVersion = serializers.CharField()
+    softwareVersion = serializers.CharField()
+    devicePassword = serializers.CharField()
+    class Meta:
         fields = ('deviceID','devicePassword','model','hardwareVersion','softwareVersion')
+
 
 class VerifyDeviceSerializer(serializers.Serializer):
     sessionID = serializers.UUIDField()
-    OTP = serializers.IntegerField()
+    OTP = serializers.CharField()
     # class Meta:
     #     fields = ('OTP','sessionID')
 
 class GetTokenSerializer(serializers.Serializer):
     deviceID = serializers.CharField()
     devicePassword = serializers.CharField()
+

@@ -2,6 +2,9 @@ from django.db import models
 from django.contrib.auth.models import User
 
 # Create your models here.
+from devices.models import Machine
+
+
 class ProblemCode(models.Model):
     problemCode = models.CharField(max_length=20,blank=False,unique=True)
     problemName = models.CharField(max_length=30)
@@ -58,6 +61,7 @@ class EventGroup(models.Model):
     groupID = models.CharField(max_length=15,blank=False,unique=True)
     groupName = models.CharField(max_length=50,blank=False,null=True)
     events = models.ManyToManyField(Event, related_name='eventGroup')
+    machines = models.ManyToManyField(Machine,related_name='machinesList')
 
     def selectedEvents(self):
         return ", \n".join([str(p)+"--->["+str(p.button.buttonName)+", "+p.problem.problemName+", "+p.indicator.indicatorColorName+"]" for p in self.events.all()])

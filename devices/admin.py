@@ -7,6 +7,10 @@ from .models import *
 
 class DeviceAdmin(admin.ModelAdmin):
     list_display = ["deviceID","model","hardwareVersion","softwareVersion"]
+    readonly_fields = ["deviceID"]
+    def has_add_permission(self, request):
+        return False
+
 admin.site.register(Device,DeviceAdmin)
 
 
@@ -34,11 +38,11 @@ class TokenAdmin(admin.ModelAdmin):
     fields = ["deviceID","token","createdAt"]
     readonly_fields = ["createdAt"]
 
-    # def has_add_permission(self, request):
-    #     return False
-    #
-    # def has_change_permission(self, request, obj=None):
-    #     return False
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
 
 
 admin.site.register(Token, TokenAdmin)

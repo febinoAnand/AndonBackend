@@ -1,3 +1,5 @@
+import uuid
+
 import binascii
 import os
 
@@ -6,22 +8,21 @@ from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 
 
-
 # Create your models here.
 
 class Device(models.Model):
-    deviceID = models.CharField(max_length=15,blank=False,unique=True)
+    deviceID = models.CharField(max_length=15,blank=False,unique=True,default=uuid.uuid1)
     model = models.CharField(max_length=10)
     hardwareVersion = models.CharField(max_length=10)
     softwareVersion = models.CharField(max_length=10)
     # token = models.CharField(max_length=30)
     devicePassword = models.CharField(max_length=20)
-    devicePassword = models.CharField(max_length=20)
+
     def __str__(self):
         return self.deviceID
 
 class Machine(models.Model):
-    machineID = models.CharField(max_length=15,unique=True, blank=False)
+    machineID = models.CharField(max_length=15,unique=True, blank=False, default=uuid.uuid1)
     name = models.CharField(max_length=50,blank=False)
     manufacture = models.CharField(max_length=50)
     model = models.CharField(max_length=10)
@@ -32,7 +33,7 @@ class Machine(models.Model):
         return self.machineID
 
 class RFID(models.Model):
-    rfid = models.CharField(max_length=50,blank=False,unique=True)
+    rfid = models.CharField(max_length=50,blank=False,unique=True,default=uuid.uuid1)
     rfidUser = models.ForeignKey(User,on_delete=models.CASCADE)
     def __str__(self):
         return self.rfid
@@ -40,7 +41,7 @@ class RFID(models.Model):
 
 class UnRegisteredDevice(models.Model):
     sessionID = models.UUIDField(blank=False,null=False)
-    deviceID = models.CharField(max_length=15,blank=False,unique=True)
+    deviceID = models.CharField(max_length=15,blank=False,unique=True,default=uuid.uuid1)
     model = models.CharField(max_length=10,blank=True,null=True)
     hardwareVersion = models.CharField(max_length=10,blank=True,null=True)
     softwareVersion = models.CharField(max_length=10,blank=True,null=True)
