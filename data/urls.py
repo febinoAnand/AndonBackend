@@ -4,7 +4,8 @@ from .views import \
     RawDataViewset, \
     LastProblemViewSet, \
     RawGetMethod,\
-    LiveDataViewset
+    LiveDataViewset,\
+    MachineLiveDataViewset
 
 from rest_framework import routers
 
@@ -18,10 +19,8 @@ router.register('', RawDataViewset)
 
 urlpatterns = [
     path('livedata',LiveDataViewset.as_view()),
+    path('machinelivedata',MachineLiveDataViewset.as_view()),
     path('rawdata',RawGetMethod.as_view()),
     path('',include(router.urls)),
-
-
-
     # path('',)
 ]

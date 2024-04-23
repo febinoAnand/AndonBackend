@@ -128,7 +128,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'Asia/Calcutta'
+TIME_ZONE = 'Asia/Kolkata'
 
 # DATETIME_FORMAT="Y-n-j\TH:i:s"
 
@@ -153,3 +153,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 JAZZMIN_SETTINGS={
     "site_brand": "Innospace",
 }
+
+CSRF_TRUSTED_ORIGINS = ['http://django.febinosolutions.com','https://*.127.0.0.1','http://64.227.130.181:9002/','http://innod.febinosolutions.com']

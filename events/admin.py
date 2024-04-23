@@ -14,7 +14,7 @@ class EventAdmin(admin.ModelAdmin):
 
 @admin.register(Button)
 class ButtonAdmin(admin.ModelAdmin):
-    list_display = ["buttonID","buttonName","buttonColorName","buttonColor"]
+    list_display = ["buttonID","buttonName","buttonColorName","buttonColor","buttonMode","buttonDO"]
     # list_display = [field.name for field in Button._meta.get_fields()]
     # list_display = admin.ModelAdmin._meta.get_all_field_names()
 

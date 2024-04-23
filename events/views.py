@@ -13,6 +13,63 @@ class ButtonViewSet(viewsets.ModelViewSet):
     serializer_class = ButtonSerializer
     queryset = Button.objects.all()
     schema = None
+
+    def create(self, request, *args, **kwargs):
+        res = request.data
+        print (res)
+
+        value = res['buttonDO']
+
+
+
+        if value == '' or value == None or value == 0 or value == '0':
+            value = 0
+
+        else:
+            buttonsWithDO = Button.objects.filter(buttonDO = value)
+            print (buttonsWithDO)
+
+            if (len(buttonsWithDO) >= 1):
+                res = {"error":"DO already Assigned..."}
+                return Response(res,status=status.HTTP_200_OK)
+            # elif (len(buttonsWithDO) == 1) and buttonsWithDO[0]["buttonID"] != res['buttonID']:
+            #     res = {"error":"DO already Assigned..."}
+            #     return Response(res,status=status.HTTP_200_OK)
+
+
+        button = Button.objects.create(
+            buttonID =res["buttonID"],
+            buttonName = res["buttonName"],
+            buttonColor = res["buttonColor"],
+            buttonColorName = res["buttonColorName"],
+            buttonDO = value,
+            buttonMode = res['buttonMode']
+        )
+        button.save()
+
+        return Response(res,status=status.HTTP_200_OK)
+
+    def update(self, request, *args, **kwargs):
+        res = request.data
+        value = res['buttonDO']
+        button = Button.objects.get(id=res['id'])
+        if value == '' or value == None or value == 0 or value == '0':
+            value = 0
+        else:
+            buttonDOlist = Button.objects.filter(buttonDO = value)
+            if len(buttonDOlist) != 0 and buttonDOlist[0].id != button.id:
+                res = {"error":"DO already Assigned"}
+                return Response(res,status=status.HTTP_200_OK)
+
+        button.buttonID = res['buttonID']
+        button.buttonName = res['buttonName']
+        button.buttonColor = res['buttonColor']
+        button.buttonColorName = res['buttonColorName']
+        button.buttonDO = value
+        button.buttonMode = res['buttonMode']
+        button.save()
+        return Response(res,status=status.HTTP_200_OK)
+
     # http_method_names = ['get']
 
     # def list(self, request, *args, **kwargs):
@@ -119,24 +176,27 @@ class EventGroupViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         res = request.data
+        print ("Process Response", res)
         # authenticateDevice(res)
 
         eventGroup = EventGroup(groupID = res["groupID"])
-        events = res["events"]
-        machines = res["machines"]
         eventGroup.groupName = res["groupName"]
+
+        events = res["eventSelectedValues"]
+        machines = res["machineSelectedValues"]
+
         eventGroup.save()
 
         for event in events:
-            currentEvent = Event.objects.get(id=event['id'])
+            currentEvent = Event.objects.get(eventID=event)
             eventGroup.events.add(currentEvent)
 
         for machine in machines:
-            currentMachine = Machine.objects.get(machineID=machine['machineID'])
+            currentMachine = Machine.objects.get(machineID=machine)
             eventGroup.machines.add(currentMachine)
 
         eventGroup.save()
-        return Response(res,status=status.HTTP_201_CREATED)
+        return Response(res, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         res = request.data
@@ -144,19 +204,21 @@ class EventGroupViewSet(viewsets.ModelViewSet):
         # authenticateDevice(res)
 
         eventGroup = EventGroup.objects.get(id=res['id'])
-        events = res['events']
-        machines = res['machines']
+        events = res['eventSelectedValues']
+        machines = res['machineSelectedValues']
         eventGroup.groupID = res["groupID"]
         eventGroup.groupName = res["groupName"]
         eventGroup.events.clear()
+        eventGroup.machines.clear()
+        eventGroup.save()
 
         for event in events:
-            currentEvent = Event.objects.get(id=event["id"])
+            currentEvent = Event.objects.get(eventID=event)
             eventGroup.events.add(currentEvent)
 
 
         for machine in machines:
-            currentMachine = Machine.objects.get(machineID=machine['machineID'])
+            currentMachine = Machine.objects.get(machineID=machine)
             eventGroup.machines.add(currentMachine)
 
         eventGroup.save()

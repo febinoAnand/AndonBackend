@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 
 # Create your models here.
 from devices.models import Machine
@@ -28,11 +30,38 @@ class Indicator(models.Model):
     def __str__(self):
         return str(self.indicatorID + " - " + self.indicatorColorName)
 
+
+
+
+def unique_default(value):
+    # print (value)
+    return value
+    # if value == '' or value == None or type(value) != int or value == 0:
+    #     value = 0
+    #     return value
+    # else:
+    #     buttonsWithDO = Button.objects.filter(buttonDO = value)
+    #     if (len(buttonsWithDO) > 0):
+    #         raise ValidationError(_("%(value)s is already assigned"),
+    #                               params={"value": value},)
+    #     return value
+
+
+
+
+
 class Button(models.Model):
     buttonID = models.CharField(max_length=15,blank=False,unique=True)
     buttonName = models.CharField(blank=False,max_length=20)
     buttonColorName = models.CharField(blank=False,max_length=20)
     buttonColor = models.CharField(max_length=7,blank=False)
+    modechoice = (
+        ("AUTO","auto"),
+        ("MANUAL","manual"),
+        ("AUTO+MANUAL","auto+manual")
+    )
+    buttonDO = models.IntegerField(validators=[unique_default], default=0)
+    buttonMode = models.CharField(max_length=15,choices=modechoice,default='auto')
     def __str__(self):
         return self.buttonName
 

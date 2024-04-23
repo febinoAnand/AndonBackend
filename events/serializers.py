@@ -6,7 +6,7 @@ from .models import *
 class ButtonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Button
-        fields = ('id','buttonID','buttonName','buttonColorName','buttonColor')
+        fields = ('id','buttonID','buttonName','buttonColorName','buttonColor','buttonDO','buttonMode')
 
 class IndicatorSerializer(serializers.ModelSerializer):
     class Meta:

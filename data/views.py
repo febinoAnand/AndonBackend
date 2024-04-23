@@ -6,8 +6,10 @@ from .serializers import RawSerializer, ProblemDataSerializer, LastProblemDataSe
 from events.models import Event, EventGroup
 from events.serializers import EventSerializer
 from devices.models import Device, Machine, Token
+from devices.serializers import MachineSerializer, MachineWithoutDeviceSerializer, DeviceSerializer
 import datetime
 from django.core import serializers
+from django.db.models import Q
 
 
 class RawGetMethod(views.APIView):
@@ -26,31 +28,79 @@ class RawGetMethod(views.APIView):
         # return Response(rawDataSerializer.data, status=status.HTTP_201_CREATED)
         return Response(json.loads(jsonRawData), status=status.HTTP_201_CREATED)
 
+class MachineLiveDataViewset(views.APIView):
+    schema = None
+    def get(self,request):
+        # print (request.GET['machineid'])
+        machinejson = {}
+        machineID = request.GET['machineid']
+        machineDetails = Machine.objects.get(machineID = machineID)
+        deviceDetails = Device.objects.get(deviceID = machineDetails.device.deviceID)
+        activeProblemDetails = ProblemData.objects.filter(machineID = machineDetails,endTime=None).order_by('-pk')
+        problemHistoryDetails = ProblemData.objects.filter(machineID = machineDetails).exclude(endTime=None).order_by('-pk')
+
+        machineSerializerData = MachineWithoutDeviceSerializer(machineDetails,many=False)
+        deviceSerializer = DeviceSerializer(deviceDetails,many=False)
+
+        machineDetailsJson = json.dumps(machineSerializerData.data)
+        deviceJson = json.dumps(deviceSerializer.data)
+
+        machinejson["machine"] = json.loads(machineDetailsJson)
+        machinejson["device"] = json.loads(deviceJson)
+
+        try:
+            problemHistorySerializer = ProblemDataSerializer(problemHistoryDetails,many=True)
+            problemHistroyJson = json.dumps(problemHistorySerializer.data)
+            machinejson["problemhistory"] = json.loads(problemHistroyJson)
+
+        except Exception as e:
+            print("history",e)
+            machinejson["problemhistory"] = []
+
+        try:
+            activeProblemSerializer = ProblemDataSerializer(activeProblemDetails,many=True)
+            activeProblemJson = json.dumps(activeProblemSerializer.data)
+            machinejson["activeproblem"] = json.loads(activeProblemJson)
+            # print("activeok")
+        except Exception as e:
+            # print("active",e)
+            machinejson["activeproblem"] = []
+
+        # print(machinejson)
+        return Response(machinejson,status=status.HTTP_200_OK)
+
 class LiveDataViewset(views.APIView):
     schema = None
-
     def get(self,request):
         responseArray = []
         machines = Machine.objects.all()
         for machine in machines:
-            print (machine)
+            # print (machine)
             machineEvent = {}
             machineEvent["machineID"] = machine.machineID
+            unsolvedeventcount = 0
             try:
-                currentMachineProblem = ProblemData.objects.filter(machineID=machine).order_by('-pk')[0]
+                try:
+                    currentMachineProblem = ProblemData.objects.filter(machineID=machine,endTime=None).order_by('-pk')
+                    unsolvedeventcount = len(currentMachineProblem)
+                    machineEvent['unsolvedeventcount'] = unsolvedeventcount
+                    currentMachineProblem = currentMachineProblem[0]
+                except Exception as e:
+                    currentMachineProblem = ProblemData.objects.filter(machineID=machine).order_by('-pk')[0]
                 currentEvent = Event.objects.get(eventID = currentMachineProblem.eventID)
                 currentEventSerializer = EventSerializer(currentEvent,many=False)
                 jsonCurrentEvent = json.dumps(currentEventSerializer.data)
                 machineEvent['event'] = json.loads(jsonCurrentEvent)
+
             except IndexError as indexerr:
                 machineEvent['event'] = {}
             except Exception as e:
                 machineEvent['event'] = {}
-                print(e)
+                # print(e)
             responseArray.append(machineEvent)
 
 
-        print (responseArray)
+        # print (responseArray)
         return Response(responseArray,status=status.HTTP_200_OK)
         # return Response({"status":"working fine"},status=status.HTTP_200_OK)
 
@@ -63,7 +113,7 @@ class RawDataViewset(viewsets.ModelViewSet):
 
     def create(self,request,*args,**kwargs):
         res = request.body
-        # print (res)
+        print (res)
 
         # if not RawSerializer(data=request.data).is_valid():
         #     errorJson = {"status":"Not valid JSON"}
@@ -126,59 +176,35 @@ class RawDataViewset(viewsets.ModelViewSet):
             # print ("currentEventProblemType---",currentEventProblemType)
 
             try:
-                currentProbleData = ProblemData.objects.filter(eventGroupID = currentGroup, deviceID = currentDevice).order_by('-id')[0]
+                currentProbleData = ProblemData.objects.filter(eventGroupID = currentGroup, deviceID = currentDevice, machineID = currentMachine).order_by('-id')[0]
                 # print("currentProbleDataIssueTime",currentProbleData.issueTime)
                 # print("currentProbleDataEndTime",currentProbleData.endTime)
             except Exception as e:
                 currentProbleData = None
                 # print(e)
 
+            LastProblemData.objects.create(
+                date = jsondata['date'],
+                time = jsondata['time'],
+                eventID = currentEvent,
+                eventGroupID = currentGroup,
+                machineID = currentMachine,
+                deviceID = currentDevice,
+                endTime = resEventTime,
+            )
 
             if currentEventProblemType == "FINE":
-                LastProblemData.objects.create(
-                            date = jsondata['date'],
-                            time = jsondata['time'],
-                            eventID = currentEvent,
-                            eventGroupID = currentGroup,
-                            machineID = currentMachine,
-                            deviceID = currentDevice,
-                            endTime = resEventTime,
-                        )
-
                 if currentProbleData is not None and currentProbleData.endTime == None :
                     currentProbleData.eventID = currentEvent
                     currentProbleData.endTime = resEventTime
                     currentProbleData.save()
 
-
-
             elif currentEventProblemType == "ACKNOWLEDGE":
-                LastProblemData.objects.create(
-                    date = jsondata['date'],
-                    time = jsondata['time'],
-                    eventID = currentEvent,
-                    eventGroupID = currentGroup,
-                    machineID = currentMachine,
-                    deviceID = currentDevice,
-                    acknowledgeTime = resEventTime,
-                )
-
                 if currentProbleData is not None and currentProbleData.acknowledgeTime == None:
                     currentProbleData.acknowledgeTime = resEventTime
                     currentProbleData.save()
 
             else:
-                LastProblemData.objects.create(
-                    date = jsondata['date'],
-                    time = jsondata['time'],
-                    eventID = currentEvent,
-                    eventGroupID = currentGroup,
-                    machineID = currentMachine,
-                    deviceID = currentDevice,
-                    issueTime = resEventTime,
-                )
-
-
                 if currentProbleData == None or currentProbleData.endTime is not None:
                     ProblemData.objects.create(
                         date = jsondata['date'],
