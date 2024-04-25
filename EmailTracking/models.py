@@ -30,3 +30,13 @@ class Settings(models.Model):
 
     def __str__(self):
         return "Settings"
+
+class SearchParameter(models.Model):
+    name = models.CharField(max_length=20)
+    hunt_word = models.CharField(max_length=50, unique=True)
+    message = models.CharField(max_length=250)
+    mobile = models.CharField(max_length=10)
+    country_code = models.CharField(max_length=3)
+
+    def __str__(self):
+        return self.name
