@@ -7,12 +7,22 @@ from .serializers import InboxSerializer, SettingsSerializer
 class InboxView(generics.ListCreateAPIView):
     queryset = Inbox.objects.all()
     serializer_class = InboxSerializer
-    allowed_methods = ['GET', 'DELETE']
+    http_method_names = ['get', 'delete']
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
-        instance = self.get_object()
-        self.perform_destroy(instance)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        try:
+            instance = self.get_queryset().first()
+            if instance:
+                instance.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            else:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     
 class SettingsView(generics.RetrieveUpdateAPIView):
     serializer_class = SettingsSerializer
