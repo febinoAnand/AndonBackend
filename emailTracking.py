@@ -10,10 +10,19 @@ from email.utils import parsedate_to_datetime
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'andondjango.settings')
 django.setup()
 from EmailTracking.models import Inbox
+from EmailTracking.models import Settings
+import sys
 
-imap_host = 'imap.gmail.com'
-imap_user = 'emailtrackfebinosolutions@gmail.com'
-imap_password = 'zugo eiey rzby vdgb'
+try:
+    settings_instance = Settings.objects.first()
+
+    imap_host = settings_instance.host
+    imap_port = settings_instance.port
+    imap_user = settings_instance.username
+    imap_password = settings_instance.password
+except:
+    print("no username found")
+    sys.exit()
 
 def process_email(msg,num):
     sender = msg['From']
@@ -61,7 +70,7 @@ def process_email(msg,num):
     print("Stored in Inbox:", inbox_instance)
 
 def read_emails():
-    mail = imaplib.IMAP4_SSL(imap_host)
+    mail = imaplib.IMAP4_SSL(imap_host,imap_port)
     mail.login(imap_user, imap_password)
     mail.select('inbox')
 
