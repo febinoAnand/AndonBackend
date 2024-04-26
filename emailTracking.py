@@ -4,7 +4,8 @@ import imaplib
 import email
 import time
 from email.header import decode_header
-from datetime import datetime
+from email.utils import parsedate_to_datetime
+
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'andondjango.settings')
 django.setup()
@@ -16,6 +17,7 @@ imap_password = 'zugo eiey rzby vdgb'
 
 def process_email(msg,num):
     sender = msg['From']
+    to_email = msg['To']
     subject = decode_header(msg['Subject'])[0][0]
     message_id = msg['Message-ID']
 
@@ -32,14 +34,29 @@ def process_email(msg,num):
             body += part.get_payload(decode=True).decode(part.get_content_charset(), 'ignore')
 
     print("Sender:", sender)
+    print("To:", to_email)
     print("Subject:", subject)
     print("Body:", body.strip())
     print("Message-ID:", message_id)
 
-    
-    current_datetime = datetime.now()
-    inbox_instance = Inbox.objects.create(from_email=sender,to_email=imap_user, subject=subject, message=body, message_id=num,date=current_datetime.date(),
-    time=current_datetime.time())
+    email_date = parsedate_to_datetime(msg['Date'])
+    if email_date:
+        email_date = email_date.date()
+
+    email_time = parsedate_to_datetime(msg['Date'])
+    if email_time:
+        email_time = email_time.time()
+
+    inbox_instance = Inbox.objects.create(
+        from_email=sender,
+        to_email=to_email,
+        subject=subject,
+        message=body,
+        message_id=num,
+        date=email_date,
+        time=email_time
+    )
+
     
     print("Stored in Inbox:", inbox_instance)
 
@@ -60,6 +77,7 @@ def read_emails():
         result, data = mail.fetch(num, '(RFC822)')
         raw_email = data[0][1]
         msg = email.message_from_bytes(raw_email)
+        print(msg)
         process_email(msg,num)
         mail.store(num, '+FLAGS', '\\Seen')
 
