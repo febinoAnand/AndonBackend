@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Inbox, Settings
+from .models import Inbox, Settings, SearchParameter
 
 class InboxSerializer(serializers.ModelSerializer):
     class Meta:
@@ -9,4 +9,9 @@ class InboxSerializer(serializers.ModelSerializer):
 class SettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Settings
+        fields = '__all__'
+
+class SearchParameterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SearchParameter
         fields = '__all__'
