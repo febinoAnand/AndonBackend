@@ -23,6 +23,9 @@ class Settings(models.Model):
     password = models.CharField(max_length=100, default='default_password')
     checkstatus = models.BooleanField(default=False)
     checkinterval = models.IntegerField(default=60)
+    phone = models.CharField(max_length=15, default='0000000000')
+    sid = models.CharField(max_length=100, default='default_sid')
+    auth_token = models.CharField(max_length=100, default='default_auth_token')
 
     def save(self, *args, **kwargs):
         if not self.pk and Settings.objects.exists():
