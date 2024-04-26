@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404
 logger = logging.getLogger(__name__)
 
 class InboxView(generics.ListCreateAPIView):
+    schema = None
     queryset = Inbox.objects.all()
     serializer_class = InboxSerializer
     http_method_names = ['get', 'delete']
@@ -29,6 +30,7 @@ class InboxView(generics.ListCreateAPIView):
 
     
 class SettingsView(generics.RetrieveUpdateAPIView):
+    schema = None
     serializer_class = SettingsSerializer
     allowed_methods = ['GET', 'PUT']
 
@@ -51,6 +53,7 @@ class SettingsView(generics.RetrieveUpdateAPIView):
         return Response(serializer.data) 
 
 class SearchParameterAPIView(generics.GenericAPIView):
+    schema = None
     queryset = SearchParameter.objects.all()
     serializer_class = SearchParameterSerializer
 
