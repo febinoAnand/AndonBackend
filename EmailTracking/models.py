@@ -37,8 +37,7 @@ class SearchParameter(models.Model):
     name = models.CharField(max_length=20)
     hunt_word = models.CharField(max_length=50, unique=True)
     message = models.CharField(max_length=250)
-    user_group = models.ForeignKey(Group, on_delete=models.CASCADE)
-    country_code = models.CharField(max_length=3)
+    user_group = models.ForeignKey(Group, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         return self.name
