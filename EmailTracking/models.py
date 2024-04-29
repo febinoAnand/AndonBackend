@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 # Create your models here.
 
 class Inbox(models.Model):
@@ -37,7 +37,7 @@ class SearchParameter(models.Model):
     name = models.CharField(max_length=20)
     hunt_word = models.CharField(max_length=50, unique=True)
     message = models.CharField(max_length=250)
-    mobile = models.CharField(max_length=10)
+    user_group = models.ForeignKey(Group, on_delete=models.CASCADE)
     country_code = models.CharField(max_length=3)
 
     def __str__(self):
