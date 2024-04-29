@@ -1,5 +1,5 @@
 from django.db import models
-
+from django.contrib.auth.models import User
 # Create your models here.
 
 class Inbox(models.Model):
@@ -13,8 +13,6 @@ class Inbox(models.Model):
 
     def __str__(self):
         return self.subject
-
-from django.db import models
 
 class Settings(models.Model):
     host = models.CharField(max_length=100, default='default_host')
@@ -44,3 +42,11 @@ class SearchParameter(models.Model):
 
     def __str__(self):
         return self.name
+    
+class UserEmailTracking(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    designation =models.CharField(max_length=25)
+    mobile = models.CharField(max_length=10)
+
+    def __str__(self):
+        return self.user
