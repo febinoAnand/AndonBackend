@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Inbox, Settings, SearchParameter, UserEmailTracking
+from .models import Inbox, Settings, SearchParameter, UserEmailTracking, GroupEmailTracking
 
 class InboxSerializer(serializers.ModelSerializer):
     class Meta:
@@ -30,3 +30,8 @@ class UserEmailTrackingSerializer(serializers.ModelSerializer):
         rep = super(UserEmailTrackingSerializer, self).to_representation(instance)
         rep['user'] = instance.user.username
         return rep
+    
+class GroupEmailTrackingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GroupEmailTracking
+        fields = ('user_group','user_list')

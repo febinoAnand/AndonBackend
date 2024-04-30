@@ -49,3 +49,10 @@ class UserEmailTracking(models.Model):
 
     def __str__(self):
         return self.user.username
+
+class GroupEmailTracking(models.Model):
+    user_group = models.OneToOneField(Group, on_delete=models.CASCADE)
+    user_list = models.ManyToManyField(User, related_name='groupemail')
+
+    def __str__(self):
+        return self.user_group

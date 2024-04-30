@@ -1,8 +1,8 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
 from django.http import Http404
-from .models import Inbox, Settings, SearchParameter, UserEmailTracking
-from .serializers import InboxSerializer, SettingsSerializer, SearchParameterSerializer , UserEmailTrackingSerializer
+from .models import Inbox, Settings, SearchParameter, UserEmailTracking, GroupEmailTracking
+from .serializers import InboxSerializer, SettingsSerializer, SearchParameterSerializer , UserEmailTrackingSerializer ,GroupEmailTrackingSerializer
 import logging
 from django.shortcuts import get_object_or_404
 
@@ -93,4 +93,14 @@ class UserEmailTrackingAPIView(generics.ListCreateAPIView):
     def get(self, request, *args, **kwargs):
         UserEmail_Tracking = self.get_queryset()
         serializer = self.get_serializer(UserEmail_Tracking, many=True)
+        return Response(serializer.data)
+    
+class GroupEmailTrackingAPIView(generics.ListCreateAPIView):
+    schema = None
+    queryset = GroupEmailTracking.objects.all()
+    serializer_class = GroupEmailTrackingSerializer
+
+    def get(self, request, *args, **kwargs):
+        GroupEmail_Tracking = self.get_queryset()
+        serializer = self.get_serializer(GroupEmail_Tracking, many=True)
         return Response(serializer.data)

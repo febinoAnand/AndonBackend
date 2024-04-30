@@ -22,3 +22,5 @@ class UserEmailTrackingAdmin(admin.ModelAdmin):
     list_display = ["user","designation","mobile"]
 
 admin.site.register(UserEmailTracking,UserEmailTrackingAdmin)
+
+admin.site.register(GroupEmailTracking)
