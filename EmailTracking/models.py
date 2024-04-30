@@ -55,4 +55,4 @@ class GroupEmailTracking(models.Model):
     user_list = models.ManyToManyField(User, related_name='groupemail')
 
     def __str__(self):
-        return self.user_group
+        return str(self.user_group)
