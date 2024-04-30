@@ -1,8 +1,8 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
 from django.http import Http404
-from .models import Inbox, Settings, SearchParameter
-from .serializers import InboxSerializer, SettingsSerializer, SearchParameterSerializer
+from .models import Inbox, Settings, SearchParameter, UserEmailTracking
+from .serializers import InboxSerializer, SettingsSerializer, SearchParameterSerializer , UserEmailTrackingSerializer
 import logging
 from django.shortcuts import get_object_or_404
 
@@ -84,3 +84,13 @@ class SearchParameterAPIView(generics.GenericAPIView):
             return Response(serializer.data)
         else:
             return Response({'error': 'Please provide hunt_word in request body.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+class UserEmailTrackingAPIView(generics.ListCreateAPIView):
+    schema = None
+    queryset = UserEmailTracking.objects.all()
+    serializer_class = UserEmailTrackingSerializer
+
+    def get(self, request, *args, **kwargs):
+        UserEmail_Tracking = self.get_queryset()
+        serializer = self.get_serializer(UserEmail_Tracking, many=True)
+        return Response(serializer.data)
