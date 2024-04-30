@@ -13,7 +13,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'andondjango.settings')
 django.setup()
 from EmailTracking.models import Inbox
 from EmailTracking.models import Settings
-from EmailTracking.models import SearchParameter
+from EmailTracking.models import SearchParameter, UserEmailTracking
 
 import sys
 
@@ -41,7 +41,7 @@ def process_email(msg,num):
     sender = msg['From']
     to_email = msg['To']
     subject = decode_header(msg['Subject'])[0][0]
-    message_id = msg['Message-ID']
+    # message_id = msg['Message-ID']
 
     if isinstance(subject, bytes):
         subject = subject.decode()
@@ -54,11 +54,35 @@ def process_email(msg,num):
         if content_type == "text/plain" and "attachment" not in content_disposition:
             body += part.get_payload(decode=True).decode(part.get_content_charset(), 'ignore')
 
+    scanBody = body.strip()
     print("Sender:", sender)
     print("To:", to_email)
     print("Subject:", subject)
-    print("Body:", body.strip())
+    print("Body:", scanBody)
     print("Message-ID:", num)
+
+    SMSmsg = "Email Received!!!\n"
+    SMSmsg += "From:" + sender + "\n"
+    SMSmsg += "TO:" + to_email + "\n"
+    SMSmsg += "Subject:" + subject + "\n"
+    SMSmsg += "Email Body:" +scanBody + "\n"
+
+
+    # sendSMS("+919790928992","Hi testing")
+    params = SearchParameter.objects.all()
+
+    for para in params:
+        # print (para.hunt_word)
+        if para.hunt_word in scanBody:
+            print ("Hunted --->",para)
+            usersToSend = UserEmailTracking.objects.filter(user__groups__name=para.user_group.name)
+            for userSend in usersToSend:
+                sendSMS("+91"+userSend.mobile,SMSmsg)
+                print("Message send to " + userSend.user.username + " to " + userSend.mobile)
+                print()
+
+
+
 
     email_date = parsedate_to_datetime(msg['Date'])
     if email_date:
@@ -78,7 +102,7 @@ def process_email(msg,num):
         time=email_time
     )
 
-    print("Stored in Inbox:", inbox_instance)
+    # print("Stored in Inbox:", inbox_instance)
 
 def read_emails():
     mail = imaplib.IMAP4_SSL(imap_host,imap_port)
@@ -114,7 +138,7 @@ def sendSMS(toMobile,msg):
 
     print(message.sid)
 
-
+# sendSMS("+919790928992","Hi testing")
 while True:
     read_emails()
     time.sleep(3)
