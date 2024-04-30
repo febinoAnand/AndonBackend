@@ -25,3 +25,8 @@ class UserEmailTrackingSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserEmailTracking
         fields = ('user','designation','mobile')
+
+    def to_representation(self, instance):
+        rep = super(UserEmailTrackingSerializer, self).to_representation(instance)
+        rep['user'] = instance.user.username
+        return rep
