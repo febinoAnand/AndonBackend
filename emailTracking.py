@@ -5,23 +5,36 @@ import email
 import time
 from email.header import decode_header
 from email.utils import parsedate_to_datetime
+from twilio.rest import Client
+
 
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'andondjango.settings')
 django.setup()
 from EmailTracking.models import Inbox
 from EmailTracking.models import Settings
+from EmailTracking.models import SearchParameter
+
 import sys
 
 try:
     settings_instance = Settings.objects.first()
-
     imap_host = settings_instance.host
     imap_port = settings_instance.port
     imap_user = settings_instance.username
     imap_password = settings_instance.password
 except:
     print("no username found")
+    sys.exit()
+
+try:
+    settings_instance = Settings.objects.first()
+    sms_sid = settings_instance.sid
+    sms_auth_token = settings_instance.auth_token
+    sms_from_phone = settings_instance.phone
+
+except:
+    print("No Data found")
     sys.exit()
 
 def process_email(msg,num):
@@ -32,7 +45,6 @@ def process_email(msg,num):
 
     if isinstance(subject, bytes):
         subject = subject.decode()
-
     body = ""
 
     for part in msg.walk():
@@ -46,7 +58,7 @@ def process_email(msg,num):
     print("To:", to_email)
     print("Subject:", subject)
     print("Body:", body.strip())
-    print("Message-ID:", message_id)
+    print("Message-ID:", num)
 
     email_date = parsedate_to_datetime(msg['Date'])
     if email_date:
@@ -66,7 +78,6 @@ def process_email(msg,num):
         time=email_time
     )
 
-    
     print("Stored in Inbox:", inbox_instance)
 
 def read_emails():
@@ -77,20 +88,32 @@ def read_emails():
     result, data = mail.search(None, 'UNSEEN')  
 
     if not data[0]:
-        print("No new messages.")
+        # print("No new messages.")
         mail.logout()
         return
 
     for num in data[0].split():
-        print(num)
+        # print(num)
         result, data = mail.fetch(num, '(RFC822)')
         raw_email = data[0][1]
         msg = email.message_from_bytes(raw_email)
-        print(msg)
+        # print(msg)
         process_email(msg,num)
         mail.store(num, '+FLAGS', '\\Seen')
 
     mail.logout()
+
+def sendSMS(toMobile,msg):
+    client = Client(sms_sid, sms_auth_token)
+
+    message = client.messages.create(
+        from_=sms_from_phone,
+        body=msg,
+        to=toMobile
+    )
+
+    print(message.sid)
+
 
 while True:
     read_emails()
