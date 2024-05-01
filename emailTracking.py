@@ -1,3 +1,4 @@
+import json
 import os
 import django
 import imaplib
@@ -6,6 +7,26 @@ import time
 from email.header import decode_header
 from email.utils import parsedate_to_datetime
 from twilio.rest import Client
+import requests
+
+from exponent_server_sdk import (
+    DeviceNotRegisteredError,
+    PushClient,
+    PushMessage,
+    PushServerError,
+    PushTicketError,
+)
+from requests.exceptions import ConnectionError, HTTPError
+
+session = requests.Session()
+session.headers.update(
+    {
+        "Authorization": f"Bearer {os.getenv('EXPO_TOKEN')}",
+        "accept": "application/json",
+        "accept-encoding": "gzip, deflate",
+        "content-type": "application/json",
+    }
+)
 
 
 
@@ -36,6 +57,8 @@ try:
 except:
     print("No Data found")
     sys.exit()
+
+
 
 def process_email(msg,num):
     sender = msg['From']
@@ -76,11 +99,13 @@ def process_email(msg,num):
         if para.hunt_word in scanBody:
             print ("Hunted --->",para)
             usersToSend = UserEmailTracking.objects.filter(user__groups__name=para.user_group.name)
+            userNotificationToken = ["ExponentPushToken[M6xd9NK-fpsc3t-MNNtQer]","ExponentPushToken[skDDHvLUgvrH7j-VB3gHFP]"]
+
             for userSend in usersToSend:
                 sendSMS("+91"+userSend.mobile,SMSmsg)
                 print("Message send to " + userSend.user.username + " to " + userSend.mobile)
                 print()
-
+            sendNotificaiton(userNotificationToken,"Test Title", scanBody)
 
 
 
@@ -127,6 +152,43 @@ def read_emails():
 
     mail.logout()
 
+# def sendNotificaiton(UserPushTokenlist, title, message):
+#     URL = "https://exp.host/--/api/v2/push/send"
+#     headers = {
+#         "host": "exp.host",
+#         "accept": "application/json",
+#         "accept-encoding": "gzip, deflate",
+#         "content-type": "application/json"
+#     }
+#     data = {
+#         # "to": "ExponentPushToken[skDDHvLUgvrH7j-VB3gHFP]",
+#         "to": UserPushTokenlist,
+#         "sound" : "default",
+#         "title":title,
+#         "body": message
+#     }
+#     res = requests.post(URL,data=json.dumps(data),headers=headers)
+#     print("response",res.text)
+
+
+def sendNotificaiton(UserPushToken, title, message):
+    URL = "https://exp.host/--/api/v2/push/send"
+    headers = {
+        "host": "exp.host",
+        "accept": "application/json",
+        "accept-encoding": "gzip, deflate",
+        "content-type": "application/json"
+    }
+    data = {
+        # "to": "ExponentPushToken[skDDHvLUgvrH7j-VB3gHFP]",
+        "to": UserPushToken,
+        "sound" : "default",
+        "title":title,
+        "body": message
+    }
+    res = requests.post(URL,data=json.dumps(data),headers=headers)
+    print("Notifcation response",res.text)
+
 def sendSMS(toMobile,msg):
     client = Client(sms_sid, sms_auth_token)
 
@@ -138,7 +200,11 @@ def sendSMS(toMobile,msg):
 
     print(message.sid)
 
+
+
 # sendSMS("+919790928992","Hi testing")
+
+
 while True:
     read_emails()
     time.sleep(3)
