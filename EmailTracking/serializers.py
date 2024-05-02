@@ -50,3 +50,10 @@ class GroupEmailTrackingSerializer(serializers.ModelSerializer):
         rep['user_list'] = self.get_user_list(instance)
         rep['user_list_count'] = self.get_user_list_count(instance)
         return rep
+
+class GroupEmailSerializer(serializers.ModelSerializer):
+    user_group = serializers.CharField()
+    user_list = serializers.CharField()
+    class Meta:
+        model = GroupEmailTracking
+        fields = "__all__"

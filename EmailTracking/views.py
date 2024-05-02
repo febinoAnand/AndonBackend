@@ -2,7 +2,7 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from django.http import Http404
 from .models import Inbox, Settings, SearchParameter, UserEmailTracking, GroupEmailTracking
-from .serializers import InboxSerializer, SettingsSerializer, SearchParameterSerializer , UserEmailTrackingSerializer ,GroupEmailTrackingSerializer
+from .serializers import InboxSerializer, SettingsSerializer, SearchParameterSerializer , UserEmailTrackingSerializer ,GroupEmailTrackingSerializer ,GroupEmailSerializer
 import logging
 from django.shortcuts import get_object_or_404
 
@@ -104,3 +104,48 @@ class GroupEmailTrackingAPIView(generics.ListCreateAPIView):
         GroupEmail_Tracking = self.get_queryset()
         serializer = self.get_serializer(GroupEmail_Tracking, many=True)
         return Response(serializer.data)
+
+    def put(self, request, *args, **kwargs):
+        user_group = kwargs.get('user_group')
+        user_list = request.data.get('user_list')
+
+        if user_group is None:
+            return Response("user_group is required.", status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            instance = GroupEmailTracking.objects.get(user_group=user_group)
+        except GroupEmailTracking.DoesNotExist:
+            return Response("Record not found.", status=status.HTTP_404_NOT_FOUND)
+
+        if user_list is not None:
+            instance.user_list.set(user_list)
+            instance.save()
+            serializer = GroupEmailTrackingSerializer(instance)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            return Response("user_list is required for update.", status=status.HTTP_400_BAD_REQUEST)
+
+    def post(self, request, *args, **kwargs):
+        serializer = GroupEmailSerializer(data=request.data)
+        print (request.data)
+        # currentGroup = Group.objects.create(g)
+        # EmailGroup = GroupEmailTracking()
+        # EmailGroup.user_group = currentGroup
+
+        # print (serializer.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"status":"Success"}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+    def delete(self, request, *args, **kwargs):
+        try:
+            instance = self.get_queryset().first()
+            if instance:
+                instance.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            else:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)

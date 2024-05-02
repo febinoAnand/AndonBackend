@@ -23,4 +23,6 @@ class UserEmailTrackingAdmin(admin.ModelAdmin):
 
 admin.site.register(UserEmailTracking,UserEmailTrackingAdmin)
 
-admin.site.register(GroupEmailTracking)
+class GroupAdmin(admin.ModelAdmin):
+    list_display = ["pk","user_group"]
+admin.site.register(GroupEmailTracking,GroupAdmin)
