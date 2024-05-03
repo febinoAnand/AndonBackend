@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'devices',
     'events',
     'data',
+    'emailtracking',
     'rest_framework',
     'corsheaders',
 ]
