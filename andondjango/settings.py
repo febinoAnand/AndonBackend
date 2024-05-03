@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'events',
     'data',
     'rest_framework',
+    'pushnotification',
     'corsheaders',
 ]
 
