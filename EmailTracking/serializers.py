@@ -52,8 +52,15 @@ class GroupEmailTrackingSerializer(serializers.ModelSerializer):
         return rep
 
 class GroupEmailSerializer(serializers.ModelSerializer):
-    user_group = serializers.CharField()
-    user_list = serializers.CharField()
     class Meta:
         model = GroupEmailTracking
-        fields = "__all__"
+        fields = ('user_group','user_list')
+
+    def create(self, validated_data):
+        return super().create(validated_data)
+
+    def to_representation(self, instance):
+        rep = super(GroupEmailSerializer, self).to_representation(instance)
+        rep['user_group'] = instance.user_group.all()
+        rep['user_list'] = instance.user_list.all()
+        return rep

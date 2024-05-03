@@ -1,10 +1,12 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from .models import Inbox, Settings, SearchParameter, UserEmailTracking, GroupEmailTracking
 from .serializers import InboxSerializer, SettingsSerializer, SearchParameterSerializer , UserEmailTrackingSerializer ,GroupEmailTrackingSerializer ,GroupEmailSerializer
 import logging
 from django.shortcuts import get_object_or_404
+import json
+from django.contrib.auth.models import User, Group
 
 logger = logging.getLogger(__name__)
 
@@ -106,38 +108,81 @@ class GroupEmailTrackingAPIView(generics.ListCreateAPIView):
         return Response(serializer.data)
 
     def put(self, request, *args, **kwargs):
-        user_group = kwargs.get('user_group')
-        user_list = request.data.get('user_list')
-
-        if user_group is None:
-            return Response("user_group is required.", status=status.HTTP_400_BAD_REQUEST)
-
         try:
-            instance = GroupEmailTracking.objects.get(user_group=user_group)
-        except GroupEmailTracking.DoesNotExist:
-            return Response("Record not found.", status=status.HTTP_404_NOT_FOUND)
+            res = request.data
+            user_group = res.get('user_group')
+            user_list_data = res.get('user_list')
 
-        if user_list is not None:
-            instance.user_list.set(user_list)
-            instance.save()
-            serializer = GroupEmailTrackingSerializer(instance)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        else:
-            return Response("user_list is required for update.", status=status.HTTP_400_BAD_REQUEST)
+            group, created = Group.objects.get_or_create(name=user_group)
+            print(group)
+
+            for user in user_list_data:
+                user_list = User.objects.get(username=user)
+                group.user_set.add(user_list)
+
+            return JsonResponse({"status": "Ok"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return JsonResponse({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     def post(self, request, *args, **kwargs):
-        serializer = GroupEmailSerializer(data=request.data)
-        print (request.data)
-        # currentGroup = Group.objects.create(g)
-        # EmailGroup = GroupEmailTracking()
-        # EmailGroup.user_group = currentGroup
+        res = request.data
+        try:
 
-        # print (serializer.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"status":"Success"}, status=status.HTTP_201_CREATED)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            jsondata = json.dumps(res)
+            print("json data", jsondata)
+
+            group_name = res.get('user_group')
+            user_list_data = res.get('user_list')
+
+            print("Group name-->",group_name)
+            print("User list--->",user_list_data)
+
+            groupModelobject = Group()
+            groupModelobject.name = group_name
+            groupModelobject.save()
+            print("Group Model --->",groupModelobject)
+
+            groupEmailTracking = GroupEmailTracking.objects.create(user_group = groupModelobject)
+        
+
+            # userListID = []
+            for user in user_list_data:
+                userObject = User.objects.get(username = user)
+                print("User object",userObject)
+                groupModelobject.user_set.add(userObject)
+                groupEmailTracking.user_list.add(userObject)
+
+
+                
+                # userListID.append(userObject.pk)
+            # print (userListID)
+            # groupEmailTracking.user_list.set(userListID) 
+            # groupEmailTracking.save()
+                
+            print (groupEmailTracking)
+            
+            # groupEmailTracking.save()
+            # group = Group.objects.create(user_group=user_group_data)
+            # group_email_tracking = GroupEmailTracking.objects.create(data=jsondata)
+            # group_email_tracking.user_group.save(group)
+
+            # for user_list in user_list_data:
+            #     group_email_tracking.user_list.add(user_list)
+
+            # group_email_tracking.save()
+            
+
+            # GroupEmailTracking.objects.create(
+            #             user_group = usergroup,
+            #             user_List = userlist,
+            #             data = jsondata
+            #         )
+            return Response({"status":"Ok"},status=status.HTTP_201_CREATED)
+        except Exception as a:
+            print(a)
+            errorJson = {"data":"Not valid","error":str(a)}
+            return Response(errorJson,status=status.HTTP_201_CREATED)
         
     def delete(self, request, *args, **kwargs):
         try:
