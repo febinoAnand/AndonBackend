@@ -76,7 +76,7 @@ class Trigger(models.Model):
     def __str__(self):
         return self.trigger_name
 
-class Settings(models.Model):
+class Setting(models.Model):
     host = models.CharField(max_length=100, default='default_host')
     port = models.IntegerField(default=8080)
     username = models.CharField(max_length=100, default='default_username')
@@ -88,9 +88,9 @@ class Settings(models.Model):
     auth_token = models.CharField(max_length=100, default='default_auth_token')
 
     def save(self, *args, **kwargs):
-        if not self.pk and Settings.objects.exists():
+        if not self.pk and Setting.objects.exists():
             raise ValueError("Only one instance of Settings can be created")
         return super().save(*args, **kwargs)
 
     def __str__(self):
-        return "Settings"
+        return "Setting"

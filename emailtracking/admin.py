@@ -27,7 +27,7 @@ class TriggerAdmin(admin.ModelAdmin):
 
 admin.site.register(Trigger, TriggerAdmin)
 
-class SettingsAdmin(admin.ModelAdmin):
+class SettingAdmin(admin.ModelAdmin):
     list_display = ["host","port","username","password","checkstatus","checkinterval","phone","sid","auth_token"]
 
-admin.site.register(Settings, SettingsAdmin)
+admin.site.register(Setting, SettingAdmin)
