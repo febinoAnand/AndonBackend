@@ -4,6 +4,8 @@ from .models import *
 # Register your models here.
 class InboxAdmin(admin.ModelAdmin):
     list_display = ["date","time","from_email","to_email","subject","message","message_id"]
+    def has_add_permission(self, request):
+        return False
 
 admin.site.register(Inbox,InboxAdmin)
 
@@ -28,6 +30,12 @@ class TriggerAdmin(admin.ModelAdmin):
 admin.site.register(Trigger, TriggerAdmin)
 
 class SettingAdmin(admin.ModelAdmin):
-    list_display = ["host","port","username","password","checkstatus","checkinterval","phone","sid","auth_token"]
+
+    list_display = ["host","port","username","password","checkstatus","checkinterval"]
+
+    def has_add_permission(self, request):
+        if len(Setting.objects.all()) > 0:
+            return False
+        return True
 
 admin.site.register(Setting, SettingAdmin)
