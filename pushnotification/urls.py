@@ -1,8 +1,5 @@
 from django.urls import path, include
-from .views import \
-    SendReportViewSet, \
-    NotificationAuthViewSet, \
-    SettingViewSet \
+from .views import *
 
 from rest_framework import routers
 
