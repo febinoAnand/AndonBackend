@@ -31,7 +31,8 @@ admin.site.register(Trigger, TriggerAdmin)
 
 class SettingAdmin(admin.ModelAdmin):
 
-    list_display = ["host","port","username","password","checkstatus","checkinterval"]
+    list_display = ["host","port","username","password","checkstatus"]
+    fields = ["host","port","username","password","checkstatus"]
 
     def has_add_permission(self, request):
         if len(Setting.objects.all()) > 0:

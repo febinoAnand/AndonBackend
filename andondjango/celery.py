@@ -20,20 +20,10 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 app.autodiscover_tasks()
 
 
-@app.task
-def andonDjangoTest(arg):
-    print ("testing..."+arg)
-
-
 @app.task(bind=True, ignore_result=True)
 def mainMailReadTask(arg):
-    # from celerytaskapp.tasks import readMailInbox
-    # readMailInbox(arg)
-    # from emailtracking.tasks import inboxReadTask
-    # inboxReadTask()
-    pass
-
-
+    from emailtracking.tasks import inboxReadTask
+    inboxReadTask(arg)
 
 @app.on_after_configure.connect
 def setup_periodic_tasks(sender, **kwargs):
