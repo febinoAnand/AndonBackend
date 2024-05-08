@@ -3,14 +3,24 @@ from .models import *
 
 # Register your models here.
 class InboxAdmin(admin.ModelAdmin):
-    list_display = ["date","time","from_email","to_email","subject","message","message_id"]
+    list_display = ["date","time","from_email","to_email","subject","show_message","message_id"]
     def has_add_permission(self, request):
         return False
+
+    def show_message(self,obj):
+        return obj.message[:10]+"..."
 
 admin.site.register(Inbox,InboxAdmin)
 
 class TicketAdmin(admin.ModelAdmin):
-    list_display = ["ticketname","date","time","inboxMessage","actual_json","required_json","log"]
+    list_display = ["date","time","ticketname","selected_field"]
+
+    def parsed_from_message(self,obj):
+        return obj.actual_json
+
+    def selected_field(self,obj):
+        return obj.required_json
+
 
 admin.site.register(Ticket, TicketAdmin)
 
@@ -25,7 +35,12 @@ class ParameterFilterAdmin(admin.ModelAdmin):
 admin.site.register(ParameterFilter,ParameterFilterAdmin)
 
 class TriggerAdmin(admin.ModelAdmin):
-    list_display = ["trigger_name","trigger_field","group_to_send","notification_message","trigger_switch","send_sms","send_notification"]
+    list_display = ["trigger_name","field","group_to_send","notification_message","trigger_switch","send_sms","send_notification"]
+
+    def field(self,obj):
+        return obj.trigger_field.field
+
+    # list_filter = ["trigger_name","trigger_field","group_to_send","notification_message","trigger_switch","send_sms","send_notification"]
 
 admin.site.register(Trigger, TriggerAdmin)
 
@@ -40,3 +55,47 @@ class SettingAdmin(admin.ModelAdmin):
         return True
 
 admin.site.register(Setting, SettingAdmin)
+
+class ReportAdmin(admin.ModelAdmin):
+    list_display = ('date','time','field_Word','actual_value',"trigger_filter",'sent_group','trigger_message')
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def trigger_name(self,obj):
+        if obj.active_trigger:
+            return obj.active_trigger.trigger_name
+        else:
+            return 'NA'
+
+    def field_Word(self, obj):
+        if obj.active_trigger:
+            return obj.active_trigger.trigger_field
+        else:
+            return 'NA'
+
+    def trigger_filter(self, obj):
+        if obj.active_trigger:
+            list_filter = [item for item in obj.active_trigger.parameter_filter_list.all()]
+            # for item in obj.active_trigger.parameter_filter_list.all():
+
+            return list_filter
+        else:
+            return 'NA'
+
+    def sent_group(self, obj):
+        if obj.active_trigger:
+            return obj.active_trigger.group_to_send
+        else:
+            return 'NA'
+
+    def trigger_message(self, obj):
+        if obj.active_trigger:
+            return obj.active_trigger.notification_message
+        else:
+            return 'NA'
+
+admin.site.register(Report,ReportAdmin)
