@@ -28,6 +28,7 @@ urlpatterns = [
     path('data/', include('data.urls')),
     path('devices/', include('devices.urls')),
     path('events/', include('events.urls')),
+    path('Userauth/', include('Userauth.urls')),
 
     path('', TemplateView.as_view(
         template_name='swagger-ui.html',
