@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'data',
     'rest_framework',
     'smsgateway',
+    'pushnotification',
     'corsheaders',
 ]
 
