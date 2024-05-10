@@ -106,7 +106,5 @@ class Setting(models.Model):
             raise ValueError("Only one instance of Settings can be created")
         return super().save(*args, **kwargs)
 
-
-
     def __str__(self):
         return "Setting"
