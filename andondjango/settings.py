@@ -54,6 +54,8 @@ INSTALLED_APPS = [
     'data',
     'emailtracking',
     'rest_framework',
+    'smsgateway',
+    'pushnotification',
     'corsheaders',
 ]
 

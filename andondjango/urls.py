@@ -30,6 +30,11 @@ urlpatterns = [
     path('events/', include('events.urls')),
     path('emailtracking/', include('emailtracking.urls')),
 
+    path('smsgateway/', include('smsgateway.urls')),
+
+    path('pushnotification/', include('pushnotification.urls')),
+
+
     path('', TemplateView.as_view(
         template_name='swagger-ui.html',
         extra_context={'schema_url':'openapi-schema'}
