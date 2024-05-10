@@ -30,3 +30,18 @@ class Setting(models.Model):
     OTP_valid_time = models.IntegerField(default =600, null=False, blank=False)
     OTP_call_count = models.IntegerField(default =5, null=False, blank=False)
     OTP_wrong_count = models.IntegerField(default =3, null=False, blank=False)
+
+
+
+
+
+class AuthTokenData(models.Model):
+    auth_token = models.CharField(max_length=100, unique=True)
+    mobile_number = models.CharField(max_length=15)
+    email = models.EmailField()
+    dev_id = models.CharField(max_length=50)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Auth Token: {self.auth_token}, Mobile Number: {self.mobile_number}, Email: {self.email}, Device ID: {self.dev_id}"
+

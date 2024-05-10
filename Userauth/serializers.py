@@ -15,3 +15,13 @@ class SettingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Setting
         fields = ('all_user_expiry_time','OTP_resend_interval','OTP_valid_time','OTP_call_count','OTP_wrong_count')
+
+
+
+from rest_framework import serializers
+
+class DataSerializer(serializers.Serializer):
+    auth_token = serializers.CharField(max_length=100)
+    mobile_number = serializers.CharField(max_length=15)
+    email = serializers.EmailField()
+    dev_id = serializers.CharField(max_length=50)     
