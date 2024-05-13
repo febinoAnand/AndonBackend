@@ -35,6 +35,7 @@ urlpatterns = [
     path('pushnotification/', include('pushnotification.urls')),
 
     path('Userauth/', include('Userauth.urls')),
+    path('app/', include('Userauth.urls')),
 
     path('', TemplateView.as_view(
         template_name='swagger-ui.html',

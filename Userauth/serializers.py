@@ -15,3 +15,11 @@ class SettingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Setting
         fields = ('all_user_expiry_time','OTP_resend_interval','OTP_valid_time','OTP_call_count','OTP_wrong_count')
+
+
+        
+class UserAuthAPISerializer(serializers.Serializer):
+    appToken = serializers.UUIDField(required=True,allow_null=False)
+    mobileno = serializers.CharField(required=True,max_length=15,allow_null=False)
+    email = serializers.EmailField(required=True,allow_null=False)
+    deviceID = serializers.UUIDField(required=True,allow_null=False)

@@ -2,6 +2,7 @@ from django.db import models
 from django.core.validators import MaxLengthValidator
 from twilio.rest import Client
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 
 # Create your models here.
@@ -32,8 +33,8 @@ class Setting(models.Model):
 
 
 class SendReport(models.Model):
-    date = models.DateField()
-    time = models.TimeField()
+    date = models.DateField(null=True,blank=True)
+    time = models.TimeField(null=True,blank=True)
     to_number = models.CharField(max_length=15, null=False, blank=False)
     from_number = models.ForeignKey(SMSNumber,null=False, blank=False,on_delete=models.SET("Number deleted.."))
     message = models.TextField(max_length=100, null=False, blank=False, validators=[MaxLengthValidator(100)])
@@ -49,6 +50,8 @@ class SendReport(models.Model):
         account_sid = smsSettings.sid
         auth_token = smsSettings.auth_token
         client = Client(account_sid, auth_token)
+        self.date = timezone.now()
+        self.time = timezone.now()
         # print (self.from_number.smsnumber)
         try:
 

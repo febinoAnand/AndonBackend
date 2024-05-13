@@ -10,4 +10,5 @@ router.register('setting',SettingViewSet)
 
 urlpatterns =[
     path('',include(router.urls)),
+    path("userauth/",UserAuthAPI.as_view()),
 ]
