@@ -7,12 +7,12 @@ from .serializers import SendReportViewSerializer, NotificationAuthViewSerialize
 
 class SendReportViewSet(viewsets.ModelViewSet):
     serializer_class = SendReportViewSerializer
-    queryset = SendReport.objects.all().order_by('-pk')
+    queryset = SendReport.objects.all()
 
 class NotificationAuthViewSet(viewsets.ModelViewSet):
     serializer_class = NotificationAuthViewSerializer
-    queryset = NotificationAuth.objects.all().order_by('-pk')
+    queryset = NotificationAuth.objects.all()
 
 class SettingViewSet(viewsets.ModelViewSet):
     serializer_class = SettingViewSerializer
-    queryset = Setting.objects.all().order_by('-pk')
+    queryset = Setting.objects.all()

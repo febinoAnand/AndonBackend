@@ -8,11 +8,11 @@ from django.http import HttpResponse
 
 class SendReportViewSet(viewsets.ModelViewSet):
     serializer_class = SendReportViewSerializer
-    queryset = SendReport.objects.all().order_by('-pk')
+    queryset = SendReport.objects.all()
 
 class SettingViewSet(viewsets.ModelViewSet):
     serializer_class = SettingViewSerializer
-    queryset = Setting.objects.all().order_by('-pk')
+    queryset = Setting.objects.all()
 
 def sendSMS(request):
 

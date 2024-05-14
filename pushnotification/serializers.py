@@ -4,12 +4,12 @@ from .models import *
 class SendReportViewSerializer(serializers.ModelSerializer):
     class Meta :
         model = SendReport
-        fields = ('date','time','title','message','send_to_user','users_group','delivery_status')
+        fields = ('__all__')
 
 class NotificationAuthViewSerializer(serializers.ModelSerializer):
     class Meta :
         model = NotificationAuth
-        fields = ('noti_token', 'user_to_auth' )
+        fields = ('__all__' )
 
 class SettingViewSerializer(serializers.ModelSerializer):
     class Meta :

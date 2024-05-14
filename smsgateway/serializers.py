@@ -9,4 +9,4 @@ class SendReportViewSerializer(serializers.ModelSerializer):
 class SettingViewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Setting
-        fields = ("sid","auth_token","number")
+        fields = ('__all__')
