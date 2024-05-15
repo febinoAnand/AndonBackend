@@ -11,4 +11,7 @@ router.register('setting',SettingViewSet)
 urlpatterns =[
     path('',include(router.urls)),
     path("userauth/",UserAuthAPI.as_view()),
+    path("userprompt/",UserAuthPrompt.as_view()),
+    path("userverify/",UserVerifyView.as_view()),
+    path("userregister/",UserRegisterView.as_view()),
 ]

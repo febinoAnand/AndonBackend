@@ -39,15 +39,6 @@ class UserAuthAPI(views.APIView):
         # print(request.body)
         
         responseData = {}
-
-        requestAppToken = ""
-
-
-        # responseData["status"] = "INVALID"
-        # responseData["message"] = "Not a valid data"
-        # responseData["otp_resend_seconds"] = 50
-        # responseData["session_id"] = "d888433f-f0a7-4eb8-8be7-734d3531cb66"
-        # responseData["mobile_no"] = "+919790928992"
         
         
 ########################### POST FLOW ##################################
@@ -96,47 +87,108 @@ class UserAuthAPI(views.APIView):
 
         existingUserEmail = ""
         existingUserMob = ""
+        existingUserDeviceID = ""
 
         #################### Existing User ##########################
         if userCount > 0:
             print ("Existing User")
+
             # print(userDetailsList[0].extUser.email)
             existingUserEmail = userDetailsList[0].extUser.email
             existingUserMob = userDetailsList[0].mobile_no
+            existingUserDeviceID = userDetailsList[0].device_id
             
             print("Given email->",jsondata["email"])
             print("email in db->",existingUserEmail)
             print ("Checking Email address....")
 
-            # Existing User But email Registered Already by another mobile.... 
+            # Existing User But email was Registered Already by another mobile.... 
             if existingUserEmail != jsondata["email"]:
                 print ("Given Email id already used by another mobileno")
                 maskedEmail = maskEmail(existingUserEmail)
                 print ("Mask email",maskedEmail)
                 responseData["status"] = "INVALID"
-                responseData["message"] = "Mobile No already registered with email "+maskedEmail
+                responseData["message"] = "Mobile Number already registered with "+maskedEmail
                 return  JsonResponse(responseData)
 
             # Existing User But email Registered Already....
 
-            # generate SessionID
-            # generatedSessionID = gen
-            
             # add or update unauth user table with 
             unAuthUser = UnauthUser.objects.filter(mobile_no = existingUserMob)
             isUnauthUserExist = unAuthUser.exists()
+            
+            generatedSessionID = generateUUID()
+            # OTP_call_count = unAuthUser.otp_called
+
             print("IsUnauthUserExist->",isUnauthUserExist)
-            if isUnauthUserExist:
-                unAuthUser[0].createdatetime = currentDateTime
-                unAuthUser[0].emailaddress = jsondata["email"]
-                unAuthUser[0].session_id = generateUUID()
-                unAuthUser[0].device_id = jsondata["deviceID"]
+            
+            if not isUnauthUserExist:    
+                print("creating new user in unauth user")
+                unAuthUser = UnauthUser(
+                    mobile_no = existingUserMob,
+                    emailaddress = existingUserEmail,
+                    createdatetime = datetime.now(),
+                    device_id = jsondata["deviceID"],
+                    otp_called = 0,
+                    is_existing_user = True,
+                    session_id = generatedSessionID
+                )            
+                
+            else:
+                print("updating user in unauth user")
+                unAuthUser = unAuthUser[0]
+                unAuthUser.emailaddress = jsondata["email"]
+                unAuthUser.device_id = jsondata["deviceID"]
+                unAuthUser.save()
 
+            OTP_call_count = unAuthUser.otp_called
+            
+            OTP_call_count += 1
 
+            if OTP_call_count > userAuthSetting.OTP_call_count:
 
+                secondsBetweenTime = compareAndGetSeconds(unAuthUser.createdatetime,currentDateTime)
+                print("seconds->",secondsBetweenTime)
+                print("settings seconds ->",userAuthSetting.unAuth_user_expiry_time)
+                if not secondsBetweenTime > userAuthSetting.unAuth_user_expiry_time:
+                    responseData["status"] = "INVALID"
+                    responseData["message"] = "Tried Too many times. Try after {minutes}min".format(minutes=int(userAuthSetting.unAuth_user_expiry_time/60))
+                    return JsonResponse(responseData)
+                else:
+                    OTP_call_count = 0
+                    OTP_call_count += 1
                 
 
+            unAuthUser.createdatetime = currentDateTime
+            unAuthUser.session_id = generatedSessionID
+            unAuthUser.otp_called = OTP_call_count
+            unAuthUser.save()
+
+            # existingUserDeviceID = jsondata["deviceID"]
+            if existingUserDeviceID != jsondata["deviceID"]:
+                responseData["status"] = "PROMPT"
+                responseData["message"] = "Already this user was registered. Do you want re-register?"
+                responseData["session_id"] = generatedSessionID
+                return JsonResponse(responseData)
+
             
+            generatedOTP = generate_otp()    
+            
+            unAuthUser.otp = generatedOTP
+            unAuthUser.save()
+
+            # call SMS Model to send
+            SendOTPSMS(jsondata["mobileno"],generatedOTP)
+            
+            responseData["status"] = "OK"
+            responseData["session_id"] = generatedSessionID
+            responseData["otp_resend_interval"] = userAuthSetting.OTP_resend_interval
+            responseData["otp_expiry_time"] = userAuthSetting.OTP_valid_time
+            responseData["is_existing_user"] = unAuthUser.is_existing_user
+
+            return JsonResponse(responseData)
+
+
 
 
         #################### New User ###############################
@@ -175,8 +227,6 @@ class UserAuthAPI(views.APIView):
                 generatedOTP = generate_otp()
                 
 
-                # TODO uncomment this
-
                 # update in the unauthuser
                 unAuthUser = UnauthUser.objects.create(
                     mobile_no = jsondata["mobileno"],
@@ -191,7 +241,7 @@ class UserAuthAPI(views.APIView):
 
                 # send jsonresponse OTP, session token, OTP resend, OTP expiry time, exsisting user status
                 responseData["status"] = "OK"
-                responseData["OTP"] = generatedOTP
+                # responseData["OTP"] = generatedOTP
                 responseData["session_id"] = generatedSessionID
                 responseData["otp_resend_interval"] = userAuthSetting.OTP_resend_interval
                 responseData["otp_expiry_time"] = userAuthSetting.OTP_valid_time
@@ -208,10 +258,14 @@ class UserAuthAPI(views.APIView):
                 OTPcallLimit = userAuthSetting.OTP_call_count
 
                 print("OTPcallCount", OTPcallLimit)
-
+                
+                #increment OTP Call count
+                userOTPCalled += 1
+                
+                
                 #checkout OTP Call Count exceed
-                if not userOTPCalled > OTPcallLimit:
-                    userOTPCalled += 1
+                if not userOTPCalled >= OTPcallLimit:
+                    
                 
                     #Generate OTP
                     generatedOTP = generate_otp()
@@ -223,21 +277,9 @@ class UserAuthAPI(views.APIView):
                     unAuthUser.createdatetime = datetime.now()
                     unAuthUser.otp_called = userOTPCalled
                     unAuthUser.otp = generatedOTP
+                    unAuthUser.emailaddress = jsondata["email"]
                     unAuthUser.save()
 
-                    # #call SMS model to Send OTP
-                    # SendOTPSMS(jsondata["mobileno"],generatedOTP)
-
-                    # #send JSON response
-                    # responseData["status"] = "OK"
-                    # responseData["OTP"] = generatedOTP
-                    # responseData["session_id"] = unAuthUser.session_id
-                    # responseData["otp_resend_interval"] = userAuthSetting.OTP_resend_interval
-                    # responseData["otp_expiry_time"] = userAuthSetting.OTP_valid_time
-                    # responseData["is_existing_user"] = False
-
-                    # return JsonResponse(responseData)
-                
                 #user Exceed retry 
                 else:
                     print("OTP Call Count Exceed")
@@ -249,7 +291,7 @@ class UserAuthAPI(views.APIView):
 
                     if calculated_time < userAuthSetting.unAuth_user_expiry_time:
                         responseData["status"] = "INVALID"
-                        responseData["message"] = "Tried Too many times. Try after 15min Or Try Different Mobile number"
+                        responseData["message"] = "Tried Too many times. Try after {minute}min Or Try Different Mobile number".format(minute=int(userAuthSetting.unAuth_user_expiry_time/60))
                         return JsonResponse(responseData)
                     
                     # generate new Session ID
@@ -273,17 +315,360 @@ class UserAuthAPI(views.APIView):
 
                 #send JSON response
                 responseData["status"] = "OK"
-                responseData["OTP"] = generatedOTP
+                # responseData["OTP"] = generatedOTP
                 responseData["session_id"] = generatedSessionID
                 responseData["otp_resend_interval"] = userAuthSetting.OTP_resend_interval
                 responseData["otp_expiry_time"] = userAuthSetting.OTP_valid_time
                 responseData["is_existing_user"] = False
 
                 return JsonResponse(responseData)
-                
-
                     
+        
+    
+
+class UserAuthPrompt(views.APIView):
+    
+    def get(self,request):
+        # print(request.body)
+        return HttpResponseNotFound()
+    
+    def post(self,request):
+        # print(request.body)
+        
+        
+        ########################### POST FLOW ##################################
+
+        #check valid Json data in request 
+        jsondata = {}
+        try:
+            jsondata = json.loads(request.body)
+        except Exception as e:
+            print (e)                       #TODO : save the exception in Log File
+            return HttpResponseNotFound()
+        
+        
+        #check app_token valid with Settings...
+        if "appToken" not in jsondata:
+            return HttpResponseNotFound()
+        
+        if jsondata["appToken"] != settings.APP_TOKEN:
+            return HttpResponseNotFound()
+
+
+        #Validate the Post Data....
+        userAuthSerializer = UserAuthPromptSerializer(data=jsondata)
+        if not userAuthSerializer.is_valid():
+            return HttpResponseBadRequest()
+
+
+        #getting currentDate and Time
+        currentDate = datetime.now().strftime("%Y-%m-%d")
+        currentTime = datetime.now().strftime("%H:%M:%S")
+        currentDateTime = datetime.now()
+        # print (currentDate,currentTime)
+
+        ########################### POST FLOW  END HERE ##################################
+
+        # initialize unauth user 
+        responseData = {}
+        userAuthSetting = UserAuthSetting.objects.first()
+        unAuthUser = UnauthUser.objects.filter(session_id = jsondata["sessionID"])
+
+        #check session id 
+        if not len(unAuthUser) > 0:
+            print("Session not found")
+            responseData["status"] = "INVALID"
+            responseData["message"] = "Session Expired Try again"
+            return  JsonResponse(responseData)
+        
+        unAuthUser = unAuthUser[0]
+        #compare device id
+        if unAuthUser.device_id != jsondata["deviceID"]:
+            print("Session Found device not match")
+            unAuthUser.delete()
+            responseData["status"] = "INVALID"
+            responseData["message"] = "Device Mismatch. Try again"
+            return  JsonResponse(responseData)
+
+        #calculate time between createat and currentdatetime
+        timeDifferenceInSeconds = compareAndGetSeconds(unAuthUser.createdatetime,currentDateTime)
+        if timeDifferenceInSeconds > userAuthSetting.unAuth_user_expiry_time:
+            print("Session Found but expired")
+            unAuthUser.delete()
+            responseData["status"] = "INVALID"
+            responseData["message"] = "Session Expired Try again"
+            return  JsonResponse(responseData)
+        
+        #check OTP count 
+        if unAuthUser.otp_called > userAuthSetting.OTP_call_count:
+            responseData["status"] = "INVALID"
+            responseData["message"] = "Tried Too many times. Try after sometime"
+            return JsonResponse(responseData)
+
+        #checkpost data need to change
+        if jsondata["needtochange"] != True:
+            unAuthUser.delete()
+            responseData["status"] = "OK"
+            responseData["message"] = "Registration cancelled"
+            return  JsonResponse(responseData)
+
+        # generate OTP
+        generatedOTP = generate_otp()
+
+        # update otp in the 
+        unAuthUser.otp = generatedOTP
+        unAuthUser.createdatetime = currentDateTime
+
+        # call SMS api
+        SendOTPSMS(unAuthUser.mobile_no,generatedOTP)
+        
+        # send response
+        responseData["status"] = "OK"
+        responseData["session_id"] = jsondata["sessionID"]
+        responseData["otp_resend_interval"] = userAuthSetting.OTP_resend_interval
+        responseData["otp_expiry_time"] = userAuthSetting.OTP_valid_time
         return JsonResponse(responseData)
+    
+
+class UserVerifyView(views.APIView):
+    def get(self,request):
+        # print(request.body)
+        return HttpResponseNotFound()
+    
+    def post(self,request):
+        print(request.body)
+
+        ########################### POST FLOW ##################################
+
+        #check valid Json data in request 
+        jsondata = {}
+        try:
+            jsondata = json.loads(request.body)
+        except Exception as e:
+            print (e)                       #TODO : save the exception in Log File
+            return HttpResponseNotFound()
+        
+        
+        #check app_token valid with Settings...
+        if "appToken" not in jsondata:
+            return HttpResponseNotFound()
+        
+        if jsondata["appToken"] != settings.APP_TOKEN:
+            return HttpResponseNotFound()
+
+
+        #Validate the Post Data....
+        userAuthSerializer = UserAuthVerifySerializer(data=jsondata)
+        if not userAuthSerializer.is_valid():
+            return HttpResponseBadRequest()
+
+
+        #getting currentDate and Time
+        currentDate = datetime.now().strftime("%Y-%m-%d")
+        currentTime = datetime.now().strftime("%H:%M:%S")
+        currentDateTime = datetime.now()
+        # print (currentDate,currentTime)
+
+        ########################### POST FLOW  END HERE ##################################
+
+
+        # initialize unauth user 
+        responseData = {}
+        userAuthSetting = UserAuthSetting.objects.first()
+        unAuthUser = UnauthUser.objects.filter(session_id = jsondata["sessionID"])
+
+        #check session id 
+        if not len(unAuthUser) > 0:
+            print("Session not found")
+            responseData["status"] = "INVALID"
+            responseData["message"] = "Session Expired Try again"
+            return  JsonResponse(responseData)
+        
+        
+        unAuthUser = unAuthUser[0]
+        #compare device id
+        if unAuthUser.device_id != jsondata["deviceID"]:
+            print("Session Found device not match")
+            unAuthUser.delete()
+            responseData["status"] = "INVALID"
+            responseData["message"] = "Device Mismatch. Try again"
+            return  JsonResponse(responseData)
+
+        #calculate time between createat and currentdatetime
+        timeDifferenceInSeconds = compareAndGetSeconds(unAuthUser.createdatetime,currentDateTime)
+        if timeDifferenceInSeconds > userAuthSetting.unAuth_user_expiry_time:
+            print("Session Found but expired")
+            unAuthUser.delete()
+            responseData["status"] = "INVALID"
+            responseData["message"] = "Session Expired Try again"
+            return  JsonResponse(responseData)
+        
+
+
+        # Check OTP equals 
+        OTP_Wrong_time = unAuthUser.otp_wrong_count
+        if unAuthUser.otp != jsondata["OTP"]:
+            if OTP_Wrong_time > userAuthSetting.OTP_wrong_count:
+                unAuthUser.delete()
+                responseData["status"] = "INVALID"
+                responseData["message"] = "OTP retry exceed. Try once again"
+                return  JsonResponse(responseData)
+            else:
+                OTP_Wrong_time += 1
+                unAuthUser.otp_wrong_count = OTP_Wrong_time
+                unAuthUser.save()
+                responseData["status"] = "INVALID"
+                responseData["message"] = "OTP Wrong"
+                return  JsonResponse(responseData)
+
+        # Genereate verification ID
+        generatedVerifiationID = generateUUID()
+        unAuthUser.verification_token = generatedVerifiationID
+        unAuthUser.save()
+
+        responseData["status"] = "OK"
+        responseData["session_id"] = jsondata["sessionID"]
+        responseData["verification_id"] = generatedVerifiationID
+        return JsonResponse(responseData)
+
+
+class UserRegisterView(views.APIView):
+    def get(self,request):
+        # print(request.body)
+        return HttpResponseNotFound()
+    
+    def post(self,request):
+        print(request.body)
+
+        ########################### POST FLOW ##################################
+
+        #check valid Json data in request 
+        jsondata = {}
+        try:
+            jsondata = json.loads(request.body)
+        except Exception as e:
+            print (e)                       #TODO : save the exception in Log File
+            return HttpResponseNotFound()
+        
+        
+        #check app_token valid with Settings...
+        if "appToken" not in jsondata:
+            return HttpResponseNotFound()
+        
+        if jsondata["appToken"] != settings.APP_TOKEN:
+            return HttpResponseNotFound()
+
+
+        #Validate the Post Data....
+        userAuthSerializer = UserAuthRegisterSerializer(data=jsondata)
+        if not userAuthSerializer.is_valid():
+            return HttpResponseBadRequest()
+
+
+        #getting currentDate and Time
+        currentDate = datetime.now().strftime("%Y-%m-%d")
+        currentTime = datetime.now().strftime("%H:%M:%S")
+        currentDateTime = datetime.now()
+        # print (currentDate,currentTime)
+
+        ########################### POST FLOW  END HERE ##################################
+        
+        # initialize unauth user 
+        responseData = {}
+        userAuthSetting = UserAuthSetting.objects.first()
+        unAuthUser = UnauthUser.objects.filter(session_id = jsondata["sessionID"])
+        
+
+        #check session id 
+        if not len(unAuthUser) > 0:
+            print("Session not found")
+            responseData["status"] = "INVALID"
+            responseData["message"] = "Session Expired Try again"
+            return  JsonResponse(responseData)
+        
+        unAuthUser = unAuthUser[0]
+        userDetails = UserDetail.objects.filter(extUser__email=unAuthUser.emailaddress)
+
+
+        #calculate time between createat and currentdatetime
+        timeDifferenceInSeconds = compareAndGetSeconds(unAuthUser.createdatetime,currentDateTime)
+        if timeDifferenceInSeconds > userAuthSetting.unAuth_user_expiry_time:
+            print("Session Found but expired")
+            unAuthUser.delete()
+            responseData["status"] = "INVALID"
+            responseData["message"] = "Session Expired Try again"
+            return  JsonResponse(responseData)
+        
+        
+        
+        #compare device id
+        if unAuthUser.device_id != jsondata["deviceID"]:
+            print("Session Found device not match")
+            unAuthUser.delete()
+            responseData["status"] = "INVALID"
+            responseData["message"] = "Device Mismatch. Try again"
+            return  JsonResponse(responseData)
+        
+        if len(UserDetail.objects.filter(device_id = jsondata["deviceID"])):
+            print("device already used by user")
+            unAuthUser.delete()
+            responseData["status"] = "INVALID"
+            responseData["message"] = "Device Mismatch. Try again"
+            return  JsonResponse(responseData)
+        
+
+        # Verify the verification token 
+        if str(unAuthUser.verification_token) != jsondata["verificationID"]:
+            print("usertable-->'"+unAuthUser.verification_token+"'")
+            print("post-->'"+jsondata["verificationID"]+"'")
+            unAuthUser.delete()
+            responseData["status"] = "INVALID"
+            responseData["session_id"] = "Not Verified Try process once again"
+            return JsonResponse(responseData)
+        
+        # create or update user model with password
+        # set inactive to the user
+        # save deviceid and other details in userdetails
+        if len(userDetails) > 0:
+            for user in userDetails:
+                print(user)
+
+            userDetails = userDetails[0]
+            userDetails.mobile_no = unAuthUser.mobile_no
+            userDetails.designation = jsondata["designation"]
+            userDetails.device_id = jsondata["deviceID"]
+            userDetails.extUser.password = jsondata["password"]
+            userDetails.extUser.first_name = jsondata["name"]
+            userDetails.extUser.is_active = False
+            userDetails.extUser.save()
+            userDetails.save()  
+
+        else:
+            user = User.objects.create_user(
+                                            username=unAuthUser.emailaddress, 
+                                            email= unAuthUser.emailaddress, 
+                                            password=jsondata["password"],
+                                            )
+            user.first_name = jsondata["name"]
+            user.is_active = False
+            user.save()
+            
+            userDetails = UserDetail.objects.create(
+                extUser = user,
+                designation = jsondata["designation"],
+                mobile_no = unAuthUser.mobile_no,
+                device_id = unAuthUser.device_id
+            )
+        
+        # delete unauther user
+        unAuthUser.delete()
+
+        #send response
+        responseData["status"] = "OK"
+        responseData["session_id"] = jsondata["sessionID"]
+        # responseData["verification_id"] = generatedVerifiationID
+        return JsonResponse(responseData)
+
     
 
 def maskEmail(email):

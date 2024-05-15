@@ -15,6 +15,7 @@ class UnauthUser(models.Model):
     designation = models.CharField(max_length=15, null=True, blank=True)
     is_existing_user = models.BooleanField(default=False, null=False, blank=False)
     verification_token = models.UUIDField(unique=True, null=True, blank=True)
+    otp_wrong_count = models.IntegerField(default=0, null=False, blank=False)
 
 class UserDetail(models.Model):
     extUser = models.OneToOneField(User, on_delete=models.CASCADE,null=False,blank=False)
