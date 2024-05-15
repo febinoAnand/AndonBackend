@@ -21,11 +21,18 @@ class ParameterSerializer(serializers.ModelSerializer):
 class ParameterFilterSerializer(serializers.ModelSerializer):
     class Meta:
         model = ParameterFilter
-        fields = ("operator","value")
+        fields = "__all__"
+
+    def to_internal_value(self, data):
+        if isinstance(data, int):
+            parameter_filter_instance = ParameterFilter.objects.get(pk=data)
+            return {'operator': parameter_filter_instance.operator, 'value': parameter_filter_instance.value}
+        return super().to_internal_value(data)
 
 class TriggerSerializer(serializers.ModelSerializer):
     group_to_send = serializers.SlugRelatedField(slug_field='name', queryset=Group.objects.all())
     trigger_field = serializers.SlugRelatedField(slug_field='alias', queryset=Parameter.objects.all())
+    parameter_filter_list = ParameterFilterSerializer(many=True, read_only=True)
     
     class Meta:
         model = Trigger

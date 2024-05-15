@@ -2,6 +2,9 @@ from rest_framework import serializers
 from .models import *
 
 class SendReportViewSerializer(serializers.ModelSerializer):
+    users_group  = serializers.SlugRelatedField(slug_field='name', queryset=Group.objects.all())
+    send_to_user = serializers.SlugRelatedField(slug_field='username', queryset=User.objects.all())
+
     class Meta :
         model = SendReport
         fields = ('__all__')
