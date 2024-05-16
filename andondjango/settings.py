@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'pushnotification',
     'corsheaders',
     'Userauth',
+    'rest_framework.authtoken'
 ]
 
 MIDDLEWARE = [
@@ -164,3 +165,7 @@ JAZZMIN_SETTINGS={
 }
 
 CSRF_TRUSTED_ORIGINS = ['http://django.febinosolutions.com','https://*.127.0.0.1','http://64.227.130.181:9002/','http://innod.febinosolutions.com']
+
+
+# Mobile app settings
+APP_TOKEN = "ddab9b66-1a0d-4b7e-8b0c-476a0ee6cfc5"
