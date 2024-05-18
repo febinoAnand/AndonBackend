@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+    redis:
+        image: redis:7.0.11-alpine
+        ports:
+            - 6379:6379
+        
+    django:
+        container_name: andonDjango
+        build:
+            context: ./
+        command: python manage.py runserver 0.0.0.0:8000
+        volumes:
+            - ./:/usr/src/app/
+        ports:
+            - 9002:8000
+        environment:
+            - DEBUG=1
+            - SECRET_KEY='django-insecure-gstje5mbc3qm)j+@o@l)=kw6w3xo_2(ryf3q+q)^^ih@k)2&be'
+            - ALLOWED_HOST=localhost, 127.0.0.1
+
+        depends_on:
+            - redis
+
+    celery:
+        container_name: celeryAndonWorker
+        build:
+            context: ./
+        command: celery -A andondjango worker -l INFO
+        volumes:
+            - ./:/usr/src/app/
+        environment:
+            - DEBUG=1
+            - SECRET_KEY='django-insecure-gstje5mbc3qm)j+@o@l)=kw6w3xo_2(ryf3q+q)^^ih@k)2&be'
+            - ALLOWED_HOST=localhost, 127.0.0.1
+            # - CELERY_TIMEZONE= "Asia/kolkata"
+            # - CELERY_TASK_TRACK_STARTED= True
+            # - CELERY_TASK_TIME_LIMIT= 30 * 60
+            # - CELERY_BROKER_URL= "redis://redis:6379"
+            # - CELERY_BACKEND= "redis://redis:6379"
+        depends_on:
+            - redis
+
+    celery-beat:
+        container_name: celery-beat-andon
+        build:
+            context: ./
+        command: celery -A andondjango beat -l INFO
+        volumes:
+            - ./:/usr/src/app/
+        # environment:
+            # - DEBUG=1
+            # - SECRET_KEY='django-insecure-8&lv*+-2fr5nhcf2o=*+$55dd3$gbz1^37z^dt6f50@9)&4+e3'
+            # - ALLOWED_HOST=localhost, 127.0.0.1
+            # - CELERY_TIMEZONE= "Asia/kolkata"
+            # - CELERY_TASK_TRACK_STARTED= True
+            # - CELERY_TASK_TIME_LIMIT= 30 * 60
+            # - CELERY_BROKER_URL= "redis://redis:6379"
+            # - CELERY_BACKEND= "redis://redis:6379"
+        depends_on:
+            - redis
+            - celery
