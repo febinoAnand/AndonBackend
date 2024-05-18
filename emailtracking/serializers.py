@@ -4,14 +4,14 @@ from .models import *
 class InboxSerializer(serializers.ModelSerializer):
     class Meta:
         model = Inbox
-        fields = ("date","time","from_email","to_email","subject","message","message_id")
+        fields = ("__all__")
 
 class TicketSerializer(serializers.ModelSerializer):
     inboxMessage = serializers.SlugRelatedField(slug_field='message', queryset=Inbox.objects.all())
 
     class Meta:
         model = Ticket
-        fields = ("ticketname","date","time","inboxMessage","actual_json","required_json","log")
+        fields = ("__all__")
 
 class ParameterSerializer(serializers.ModelSerializer):
     class Meta:

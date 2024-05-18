@@ -4,8 +4,8 @@ from .models import *
 # Register your models here.
 class InboxAdmin(admin.ModelAdmin):
     list_display = ["date","time","from_email","to_email","subject","show_message","message_id"]
-    def has_add_permission(self, request):
-        return False
+    # def has_add_permission(self, request):
+    #     return False
 
     def show_message(self,obj):
         return obj.message[:10]+"..."
