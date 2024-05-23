@@ -711,6 +711,9 @@ def generateUUID():
     return str(uuid.uuid4())
 
 class ResendOTPView(views.APIView):
+    def get(self,request):
+        # print(request.body)
+        return HttpResponseNotFound()
     def post(self, request):
         try:
             jsondata = json.loads(request.body)
@@ -718,25 +721,32 @@ class ResendOTPView(views.APIView):
             print(e)
             return HttpResponseNotFound()
 
-        required_fields = ["session_id", "appToken"]
+        required_fields = ["sessionID", "appToken"]
         if not all(field in jsondata for field in required_fields):
             return HttpResponseBadRequest("Missing required fields")
 
         if jsondata["appToken"] != settings.APP_TOKEN:
             return HttpResponseNotFound("Invalid app token")
-        unauth_user = UnauthUser.objects.filter(session_id=jsondata["session_id"]).first()
+        unauth_user = UnauthUser.objects.filter(session_id=jsondata["sessionID"]).first()
 
+        # if not unauth_user:
+        #     return HttpResponseNotFound("Session not found")
+        response_data = {}
         if not unauth_user:
-            return HttpResponseNotFound("Session not found")
+            response_data["status"] = "INVALID"
+            response_data["message"] = "Session Expired Try again"
+            return  JsonResponse(response_data)
+        
         user_auth_setting = UserAuthSetting.objects.first()
-
         expiry_time = user_auth_setting.unAuth_user_expiry_time
         current_time = datetime.now()
         session_creation_time = unauth_user.createdatetime
         time_difference = (current_time - session_creation_time).total_seconds()
 
         if time_difference > expiry_time:
-            return HttpResponseNotFound("Session expired")
+            response_data["status"] = "INVALID"
+            response_data["message"] = "Session Expired Try again"
+            return  JsonResponse(response_data)
 
         new_otp = generate_otp()
         unauth_user.otp = new_otp
