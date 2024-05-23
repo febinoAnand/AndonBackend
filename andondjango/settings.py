@@ -21,10 +21,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-8&lv*+-2fr5nhcf2o=*+$55dd3$gbz1^37z^dt6f50@9)&4+e3'
+SECRET_KEY = os.environ.get("SECRET_KEY",'django-insecure-gstje5mbc3qm)j+@o@l)=kw6w3xo_2(ryf3q+q)^^ih@k)2&be')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DEBUG",True)
 
 ALLOWED_HOSTS = ['*']
 djangoHTTPPort = 9002
@@ -52,9 +52,14 @@ INSTALLED_APPS = [
     'devices',
     'events',
     'data',
+    'emailtracking',
     'rest_framework',
+    'smsgateway',
+    'pushnotification',
     'corsheaders',
     'EmailTracking',
+    'Userauth',
+    'rest_framework.authtoken'
 ]
 
 MIDDLEWARE = [
@@ -150,9 +155,25 @@ STATIC_ROOT = os.path.join(BASE_DIR,'static')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# # Celery Configuration Options
+# CELERY_TIMEZONE = "Asia/kolkata"
+# CELERY_TASK_TRACK_STARTED = True
+# CELERY_TASK_TIME_LIMIT = 30 * 60
+# CELERY_BROKER_URL = "redis://redis:6379"
+
+# CELERY_TIMEZONE = os.environ.get("CELERY_TIMEZONE","Asia/kolkata")
+CELERY_TASK_TRACK_STARTED = os.environ.get("CELERY_TASK_TRACK_STARTED",True)
+CELERY_TASK_TIME_LIMIT = os.environ.get("CELERY_TASK_TIME_LIMIT",30 * 60)
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL","redis://redis:6379/0")
+CELERY_RESULT_BACKEND = os.environ.get("CELERY_BACKEND","redis://redis:6379/0")
+
 
 JAZZMIN_SETTINGS={
     "site_brand": "Innospace",
 }
 
 CSRF_TRUSTED_ORIGINS = ['http://django.febinosolutions.com','https://*.127.0.0.1','http://64.227.130.181:9002/','http://innod.febinosolutions.com']
+
+
+# Mobile app settings
+APP_TOKEN = "ddab9b66-1a0d-4b7e-8b0c-476a0ee6cfc5"
