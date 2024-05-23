@@ -28,8 +28,8 @@ urlpatterns = [
     path('data/', include('data.urls')),
     path('devices/', include('devices.urls')),
     path('events/', include('events.urls')),
-    path('EmailTracking/', include('EmailTracking.urls')),
-    # path('emailtracking/', include('emailtracking.urls')),
+    # path('EmailTracking/', include('EmailTracking.urls')),
+    path('emailtracking/', include('emailtracking.urls')),
 
     path('smsgateway/', include('smsgateway.urls')),
 

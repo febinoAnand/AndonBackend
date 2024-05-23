@@ -57,7 +57,6 @@ INSTALLED_APPS = [
     'smsgateway',
     'pushnotification',
     'corsheaders',
-    'EmailTracking',
     'Userauth',
     'rest_framework.authtoken'
 ]

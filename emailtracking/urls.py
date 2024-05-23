@@ -1,17 +1,8 @@
-from django.urls import path, include
-from .views import *
-from rest_framework import routers
+from django.urls import path
+from . import views
 
-router = routers.DefaultRouter()
-router.register('inbox',InboxViewSet)
-router.register('parameter',ParameterViewSet, basename="parameter")
-router.register('setting',SettingViewSet, basename="setting")
-router.register('trigger',TriggerViewSet, basename="trigger")
-router.register('filter',ParameterFilterViewSet, basename="filter")
-router.register('ticket',TicketViewSet, basename="ticket")
-
-urlpatterns =[
-    path('readmail/',readMailView),
-    path('',include(router.urls)),
+urlpatterns = [
+    path('inbox', views.InboxView.as_view(), name='inbox-list'),
+    path('settings', views.SettingsView.as_view(), name='settings-detail'),
+    path('searchparameters', views.SearchParameterAPIView.as_view(), name='search-parameter'),
 ]
-

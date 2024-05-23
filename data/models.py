@@ -9,7 +9,8 @@ from devices.models import Machine,RFID, Device
 
 class RawData(models.Model):
     # {"date": "2023-08-26", "time": "08:26:17", "eventID": "EV123-001", "deviceID": "DEV123","eventGroupID":"GEV123"} Data format
-    datetime = models.DateTimeField(editable=False,default=dateformat.format(timezone.now(), 'Y-m-d H:i:s'))
+    # datetime = models.DateTimeField(editable=False,default=dateformat.format(timezone.now(), 'Y-m-d H:i:s'))
+    datetime = models.DateTimeField(editable=False,default=datetime.datetime.now)
     data = models.TextField(blank=False)
     date = models.DateField(blank=True,null=True)
     time = models.TimeField(blank=True,null=True)
