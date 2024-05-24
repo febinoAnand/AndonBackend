@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 import uuid
 
 # Create your models here.
+User._meta.get_field("email").blank = False
 
 class UnauthUser(models.Model):
     mobile_no = models.CharField(max_length=15, null=False, blank=False)
