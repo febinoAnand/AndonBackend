@@ -18,11 +18,13 @@ class UserSerializer(serializers.ModelSerializer):
 class UserDetailSerializer(serializers.ModelSerializer):
     usermod = UserSerializer(source="extUser",read_only=True)
     userdetail_id = serializers.IntegerField(source = "id")
-    user_id = serializers.IntegerField(source = "extUser.id")
-    userActive = serializers.BooleanField(source="extUser.is_active")
+    user_id = serializers.IntegerField(source = "extUser.id",read_only=True)
+    userActive = serializers.BooleanField(source="extUser.is_active",read_only=True)
+    
     class Meta:
         model = UserDetail
         fields = ('userdetail_id','user_id','usermod','designation','mobile_no','device_id','auth_state','expiry_time',"userActive")
+        # read_only_fields = ('userdetail_id','user_id','usermod','','mobile_no','device_id','expiry_time')
 
 
 class SettingSerializer(serializers.ModelSerializer):
