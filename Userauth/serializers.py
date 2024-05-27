@@ -1,15 +1,24 @@
 from rest_framework import serializers
 from .models import *
 
+from django.contrib.auth.models import User
+
 class UnauthUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = UnauthUser
         fields = ('mobile_no','createdatetime','otp','emailaddress','session_id','device_id','otp_called','designation','is_existing_user','verification_token')
 
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('username','email','id','first_name',"last_name","is_active")
+
 class UserDetailSerializer(serializers.ModelSerializer):
+    usermod = UserSerializer(source="extUser",read_only=True)
     class Meta:
         model = UserDetail
-        fields = ('extUser','designation','mobile_no','device_id','auth_state','expiry_time')
+        fields = ('usermod','designation','mobile_no','device_id','auth_state','expiry_time')
 
 class SettingSerializer(serializers.ModelSerializer):
     class Meta:
@@ -50,3 +59,5 @@ class UserAuthRegisterSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=30, required=True,allow_null=False)
     password = serializers.CharField(max_length=30, required=True,allow_null=False)
     notificationID = serializers.CharField(max_length=50, required=True,allow_null=False)
+
+
