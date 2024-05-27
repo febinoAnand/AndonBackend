@@ -12,16 +12,17 @@ class UnauthUserSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('username','email','first_name',"last_name")
+        fields = ('id','username','email','first_name',"last_name")
+        # read_only_fields = ('username','email','first_name',"last_name")
 
 class UserDetailSerializer(serializers.ModelSerializer):
     usermod = UserSerializer(source="extUser",read_only=True)
+    userdetail_id = serializers.IntegerField(source = "id")
+    user_id = serializers.IntegerField(source = "extUser.id")
     userActive = serializers.BooleanField(source="extUser.is_active")
-    id = serializers.IntegerField(source="extUser.id")
-    
     class Meta:
         model = UserDetail
-        fields = ('id','usermod','designation','mobile_no','device_id','auth_state','expiry_time',"userActive")
+        fields = ('userdetail_id','user_id','usermod','designation','mobile_no','device_id','auth_state','expiry_time',"userActive")
 
 
 class SettingSerializer(serializers.ModelSerializer):
