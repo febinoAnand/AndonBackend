@@ -20,7 +20,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework import generics
 from .serializers import GroupSerializer
 from rest_framework import status
-
+from pushnotification.models import Setting
 
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import User  
@@ -539,10 +539,24 @@ class UserVerifyView(views.APIView):
         unAuthUser.verification_token = generatedVerifiationID
         unAuthUser.save()
 
-        responseData["status"] = "OK"
-        responseData["session_id"] = jsondata["sessionID"]
-        responseData["verification_id"] = generatedVerifiationID
-        return JsonResponse(responseData)
+       
+        try:
+            setting = Setting.objects.first()
+            if not setting:
+                return Response({'error': 'No settings found'}, status=status.HTTP_404_NOT_FOUND)
+
+            responseData = {
+                "status": "OK",
+                "session_id": request.data.get("sessionID"),
+                "verification_id": generatedVerifiationID,  # replace this with your actual generated verification ID
+                "Application_id": setting.application_id
+            }
+
+            return Response(responseData, status=status.HTTP_200_OK)
+        except Setting.DoesNotExist:
+            return Response({'error': 'Settings not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        
 
 
 class UserRegisterView(views.APIView):
