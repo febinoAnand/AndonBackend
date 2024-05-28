@@ -16,7 +16,15 @@ from django.conf import settings
 import json
 import uuid
 import random
+from rest_framework.authtoken.models import Token
+from rest_framework import generics
+from .serializers import GroupSerializer
+from rest_framework import status
 
+
+from django.contrib.auth.models import Group
+from django.contrib.auth.models import User  
+from .serializers import UserSerializer
 
 import smsgateway.integrations as SMSgateway
 
@@ -761,3 +769,43 @@ class ResendOTPView(views.APIView):
             "otp_expiry_time": user_auth_setting.OTP_valid_time
         }
         return JsonResponse(response_data)
+    
+
+
+
+
+
+class RevokeAuthToken(APIView):
+    def delete(self, request):
+        token_key = request.query_params.get('token')
+
+        if not token_key:
+            return Response({'error': 'Token not provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if the token exists
+        try:
+            token = Token.objects.get(key=token_key)
+        except Token.DoesNotExist:
+            return Response({'error': 'Token not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Delete the token
+        token.delete()
+
+        return Response({'message': 'Token revoked successfully'}, status=status.HTTP_204_NO_CONTENT)
+
+
+
+class GroupUsersAPIView(APIView):
+    def get(self, request, group_id):
+        try:
+            group = Group.objects.get(id=group_id)
+            users = group.user_set.all()  
+            serializer = UserSerializer(users, many=True)  
+            return Response(serializer.data)
+        except Group.DoesNotExist:
+            return Response({'error': 'Group not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+
+class GroupListView(generics.ListAPIView):
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer

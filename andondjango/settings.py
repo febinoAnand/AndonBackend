@@ -58,7 +58,8 @@ INSTALLED_APPS = [
     'pushnotification',
     'corsheaders',
     'Userauth',
-    'rest_framework.authtoken'
+    'rest_framework.authtoken',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [

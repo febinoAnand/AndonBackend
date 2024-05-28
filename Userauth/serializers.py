@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import *
-
+from django.contrib.auth.models import Group
 from django.contrib.auth.models import User
 
 class UnauthUserSerializer(serializers.ModelSerializer):
@@ -68,3 +68,16 @@ class UserAuthRegisterSerializer(serializers.Serializer):
     notificationID = serializers.CharField(max_length=50, required=True,allow_null=False)
 
 
+
+
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email'] 
+
+class GroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Group
+        fields = ['id', 'name']
