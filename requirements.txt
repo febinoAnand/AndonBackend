@@ -17,6 +17,7 @@ DateTime==5.3
 Django==4.2.4
 django-cors-headers==4.3.1
 django-dynamic-model==0.3.0
+django-extensions==3.2.3
 django-jazzmin==2.6.0
 djangorestframework==3.14.0
 docopt==0.6.2
