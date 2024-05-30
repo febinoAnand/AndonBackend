@@ -81,3 +81,16 @@ class GroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = Group
         fields = ['id', 'name']
+
+class GroupUserUpdateSerializer(serializers.ModelSerializer):
+    user_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True)
+
+    class Meta:
+        model = Group
+        fields = ['user_ids']
+
+    def update(self, instance, validated_data):
+        user_ids = validated_data['user_ids']
+        users = User.objects.filter(id__in=user_ids)
+        instance.user_set.set(users)  
+        return instance

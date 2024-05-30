@@ -2,8 +2,7 @@ from django.urls import path, include
 from rest_framework import routers
 from rest_framework.authtoken.views import obtain_auth_token
 from .views import *
-from .views import GroupUsersAPIView
-from .views import GroupListView
+
 
 router = routers.DefaultRouter()
 router.register('unauthuser', UnauthUserViewSet)
@@ -21,6 +20,9 @@ urlpatterns = [
     path('revoke-token/', RevokeAuthToken.as_view(), name='revoke_token'),
     path('groups/<int:group_id>/users/', GroupUsersAPIView.as_view(), name='group_users'),
     path('groups/', GroupListView.as_view(), name='group-list'),
+    path('groups/<int:id>/add-users/', GroupUserAddView.as_view(), name='group-add-users'),
+    path('groups/<int:id>/remove-users/', GroupUserRemoveView.as_view(), name='group-remove-users'),
+
 ]
 
 

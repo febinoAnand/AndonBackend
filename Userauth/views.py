@@ -21,7 +21,7 @@ from rest_framework import generics
 from .serializers import GroupSerializer
 from rest_framework import status
 from pushnotification.models import Setting
-
+from .serializers import GroupSerializer, GroupUserUpdateSerializer
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import User  
 from .serializers import UserSerializer
@@ -823,3 +823,36 @@ class GroupUsersAPIView(APIView):
 class GroupListView(generics.ListAPIView):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
+
+
+
+class GroupUserAddView(generics.UpdateAPIView):
+    queryset = Group.objects.all()
+    serializer_class = GroupUserUpdateSerializer
+    lookup_field = 'id'
+
+    def patch(self, request, *args, **kwargs):
+        group = self.get_object()
+        user_ids = request.data.get('user_ids', [])
+        users = User.objects.filter(id__in=user_ids)
+        group.user_set.add(*users)  
+        message = f"Users added to group {group.name}."
+        return Response({"message": message}, status=status.HTTP_200_OK)
+
+class GroupUserRemoveView(generics.UpdateAPIView):
+    queryset = Group.objects.all()
+    serializer_class = GroupUserUpdateSerializer
+    lookup_field = 'id'
+
+    def patch(self, request, *args, **kwargs):
+        group = self.get_object()
+        user_ids = request.data.get('user_ids', [])
+        
+        
+        users_to_remove = group.user_set.filter(id__in=user_ids)
+       
+        group.user_set.remove(*users_to_remove)
+        
+        message = f"Users removed from group {group.name}."
+        return Response({"message": message}, status=status.HTTP_200_OK)
+
