@@ -70,6 +70,7 @@ class UserAuthRegisterSerializer(serializers.Serializer):
 
 
 
+
 class UserSerializer(serializers.ModelSerializer):
     mobile_no = serializers.SerializerMethodField()
 
@@ -84,8 +85,6 @@ class UserSerializer(serializers.ModelSerializer):
             return None
 
 
-
-
 class AuthGroupSerializer(serializers.ModelSerializer):
     user_set = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), many=True)
     user_details = serializers.SerializerMethodField()
@@ -98,6 +97,12 @@ class AuthGroupSerializer(serializers.ModelSerializer):
         users = obj.user_set.all()
         user_serializer = UserSerializer(users, many=True)
         return user_serializer.data
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation.pop('user_set', None) 
+        return representation
+
 
 
 

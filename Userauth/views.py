@@ -819,7 +819,6 @@ class RevokeAuthToken(APIView):
 
 
 
-
 class GroupViewSet(viewsets.ModelViewSet):
     queryset = Group.objects.all()
     serializer_class = AuthGroupSerializer
@@ -833,21 +832,18 @@ class ChangePasswordView(APIView):
         new_password = request.data.get('new_password')
         confirm_password = request.data.get('confirm_password')
         
-        # Retrieve the user from the database
         try:
             user = User.objects.get(pk=user_id)
         except User.DoesNotExist:
             return Response({"error": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
         
-        # Check if the old password matches
+
         if not check_password(old_password, user.password):
             return Response({"error": "Old password is incorrect"}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Check if the new password and confirm password match
         if new_password != confirm_password:
             return Response({"error": "New password and confirm password do not match"}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Update the user's password
         user.set_password(new_password)
         user.save()
         
