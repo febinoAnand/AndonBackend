@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 import uuid
-
+from django.contrib.auth.models import Group as BaseGroup
 # Create your models here.
 User._meta.get_field("email").blank = False
 
@@ -34,7 +34,7 @@ class Setting(models.Model):
     OTP_call_count = models.IntegerField(default =5, null=False, blank=False)
     OTP_wrong_count = models.IntegerField(default =3, null=False, blank=False)
 
-from django.contrib.auth.models import Group as BaseGroup
+
 
 
 
