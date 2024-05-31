@@ -18,13 +18,19 @@ import uuid
 import random
 from rest_framework.authtoken.models import Token
 from rest_framework import generics
-from .serializers import GroupSerializer
+
 from rest_framework import status
 from pushnotification.models import Setting
-from .serializers import GroupSerializer, GroupUserUpdateSerializer
+
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import User  
-from .serializers import UserSerializer
+
+
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.exceptions import NotFound
+from .serializers import AuthGroupSerializer
 
 import smsgateway.integrations as SMSgateway
 
@@ -808,84 +814,17 @@ class RevokeAuthToken(APIView):
         return Response({'message': 'Token revoked successfully'}, status=status.HTTP_204_NO_CONTENT)
 
 
-
-class GroupUsersAPIView(APIView):
-    def get(self, request, group_id):
-        try:
-            group = Group.objects.get(id=group_id)
-            users = group.user_set.all()  
-            serializer = UserSerializer(users, many=True)  
-            return Response(serializer.data)
-        except Group.DoesNotExist:
-            return Response({'error': 'Group not found'}, status=status.HTTP_404_NOT_FOUND)
-        
-
-class GroupListView(generics.ListAPIView):
-    queryset = Group.objects.all()
-    serializer_class = GroupSerializer
-
-
-
-class GroupUserAddView(generics.UpdateAPIView):
-    queryset = Group.objects.all()
-    serializer_class = GroupUserUpdateSerializer
-    lookup_field = 'id'
-
-    def patch(self, request, *args, **kwargs):
-        group = self.get_object()
-        user_ids = request.data.get('user_ids', [])
-        users = User.objects.filter(id__in=user_ids)
-        group.user_set.add(*users)  
-        message = f"Users added to group {group.name}."
-        return Response({"message": message}, status=status.HTTP_200_OK)
-
-class GroupUserRemoveView(generics.UpdateAPIView):
-    queryset = Group.objects.all()
-    serializer_class = GroupUserUpdateSerializer
-    lookup_field = 'id'
-
-    def patch(self, request, *args, **kwargs):
-        group = self.get_object()
-        user_ids = request.data.get('user_ids', [])
-        
-        
-        users_to_remove = group.user_set.filter(id__in=user_ids)
-       
-        group.user_set.remove(*users_to_remove)
-        
-        message = f"Users removed from group {group.name}."
-        return Response({"message": message}, status=status.HTTP_200_OK)
     
-from django.contrib.auth.models import Group, User
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework.exceptions import NotFound
-from .serializers import AuthGroupSerializer
+
+
+
 
 class GroupViewSet(viewsets.ModelViewSet):
     queryset = Group.objects.all()
     serializer_class = AuthGroupSerializer
 
-    @action(detail=True, methods=['post'])
-    def add_user(self, request, pk=None):
-        group = self.get_object()
-        try:
-            user = User.objects.get(pk=request.data['user_id'])
-            group.user_set.add(user)
-            return Response({'status': 'user added'})
-        except User.DoesNotExist:
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    @action(detail=True, methods=['post'])
-    def remove_user(self, request, pk=None):
-        group = self.get_object()
-        try:
-            user = User.objects.get(pk=request.data['user_id'])
-            group.user_set.remove(user)
-            return Response({'status': 'user removed'})
-        except User.DoesNotExist:
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
 
 
 

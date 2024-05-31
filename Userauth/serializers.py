@@ -68,47 +68,14 @@ class UserAuthRegisterSerializer(serializers.Serializer):
     notificationID = serializers.CharField(max_length=50, required=True,allow_null=False)
 
 
-
-
-
-
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id', 'username', 'email'] 
-
-class GroupSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Group
-        fields = ['id', 'name']
-
-class GroupUserUpdateSerializer(serializers.ModelSerializer):
-    user_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True)
-
-    class Meta:
-        model = Group
-        fields = ['user_ids']
-
-    def update(self, instance, validated_data):
-        user_ids = validated_data['user_ids']
-        users = User.objects.filter(id__in=user_ids)
-        instance.user_set.set(users)  
-        return instance
-    
-from django.contrib.auth.models import Group, User
-from rest_framework import serializers
-
 class AuthGroupSerializer(serializers.ModelSerializer):
-    users = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), many=True, required=False)
-
+    user_set = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), many=True)
+    
     class Meta:
         model = Group
-        fields = ['id', 'name', 'permissions', 'users']
+        fields = ['id', 'name', 'user_set']
 
-    def update(self, instance, validated_data):
-        users = validated_data.pop('users', None)
-        instance = super().update(instance, validated_data)
-        if users is not None:
-            instance.user_set.set(users)
-        return instance
+
+
+
 
