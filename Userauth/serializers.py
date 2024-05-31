@@ -78,4 +78,12 @@ class AuthGroupSerializer(serializers.ModelSerializer):
 
 
 
+class ChangePasswordSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+    old_password = serializers.CharField(max_length=128)
+    new_password = serializers.CharField(max_length=128)
+    confirm_password = serializers.CharField(max_length=128)
+
+
+
 
