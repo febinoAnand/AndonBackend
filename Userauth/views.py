@@ -18,13 +18,19 @@ import uuid
 import random
 from rest_framework.authtoken.models import Token
 from rest_framework import generics
-from .serializers import GroupSerializer
+
 from rest_framework import status
 from pushnotification.models import Setting
 
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import User  
-from .serializers import UserSerializer
+
+
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.exceptions import NotFound
+from .serializers import AuthGroupSerializer
 
 import smsgateway.integrations as SMSgateway
 
@@ -808,18 +814,18 @@ class RevokeAuthToken(APIView):
         return Response({'message': 'Token revoked successfully'}, status=status.HTTP_204_NO_CONTENT)
 
 
+    
 
-class GroupUsersAPIView(APIView):
-    def get(self, request, group_id):
-        try:
-            group = Group.objects.get(id=group_id)
-            users = group.user_set.all()  
-            serializer = UserSerializer(users, many=True)  
-            return Response(serializer.data)
-        except Group.DoesNotExist:
-            return Response({'error': 'Group not found'}, status=status.HTTP_404_NOT_FOUND)
-        
 
-class GroupListView(generics.ListAPIView):
+
+
+class GroupViewSet(viewsets.ModelViewSet):
     queryset = Group.objects.all()
-    serializer_class = GroupSerializer
+    serializer_class = AuthGroupSerializer
+
+
+
+
+
+
+

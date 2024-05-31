@@ -68,16 +68,14 @@ class UserAuthRegisterSerializer(serializers.Serializer):
     notificationID = serializers.CharField(max_length=50, required=True,allow_null=False)
 
 
-
-
-
-
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id', 'username', 'email'] 
-
-class GroupSerializer(serializers.ModelSerializer):
+class AuthGroupSerializer(serializers.ModelSerializer):
+    user_set = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), many=True)
+    
     class Meta:
         model = Group
-        fields = ['id', 'name']
+        fields = ['id', 'name', 'user_set']
+
+
+
+
+
