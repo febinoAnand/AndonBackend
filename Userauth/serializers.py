@@ -68,12 +68,38 @@ class UserAuthRegisterSerializer(serializers.Serializer):
     notificationID = serializers.CharField(max_length=50, required=True,allow_null=False)
 
 
+
+
+class UserSerializer(serializers.ModelSerializer):
+    mobile_no = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'first_name', 'last_name', 'email', 'mobile_no']
+
+    def get_mobile_no(self, obj):
+        try:
+            return obj.userdetail.mobile_no
+        except UserDetail.DoesNotExist:
+            return None
+
+
+
+
 class AuthGroupSerializer(serializers.ModelSerializer):
     user_set = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), many=True)
-    
+    user_details = serializers.SerializerMethodField()
+
     class Meta:
         model = Group
-        fields = ['id', 'name', 'user_set']
+        fields = ['id', 'name', 'user_set', 'user_details']
+
+    def get_user_details(self, obj):
+        users = obj.user_set.all()
+        user_serializer = UserSerializer(users, many=True)
+        return user_serializer.data
+
+
 
 
 
