@@ -94,3 +94,21 @@ class GroupUserUpdateSerializer(serializers.ModelSerializer):
         users = User.objects.filter(id__in=user_ids)
         instance.user_set.set(users)  
         return instance
+    
+from django.contrib.auth.models import Group, User
+from rest_framework import serializers
+
+class AuthGroupSerializer(serializers.ModelSerializer):
+    users = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), many=True, required=False)
+
+    class Meta:
+        model = Group
+        fields = ['id', 'name', 'permissions', 'users']
+
+    def update(self, instance, validated_data):
+        users = validated_data.pop('users', None)
+        instance = super().update(instance, validated_data)
+        if users is not None:
+            instance.user_set.set(users)
+        return instance
+

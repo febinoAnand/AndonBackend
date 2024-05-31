@@ -855,4 +855,38 @@ class GroupUserRemoveView(generics.UpdateAPIView):
         
         message = f"Users removed from group {group.name}."
         return Response({"message": message}, status=status.HTTP_200_OK)
+    
+from django.contrib.auth.models import Group, User
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.exceptions import NotFound
+from .serializers import AuthGroupSerializer
+
+class GroupViewSet(viewsets.ModelViewSet):
+    queryset = Group.objects.all()
+    serializer_class = AuthGroupSerializer
+
+    @action(detail=True, methods=['post'])
+    def add_user(self, request, pk=None):
+        group = self.get_object()
+        try:
+            user = User.objects.get(pk=request.data['user_id'])
+            group.user_set.add(user)
+            return Response({'status': 'user added'})
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['post'])
+    def remove_user(self, request, pk=None):
+        group = self.get_object()
+        try:
+            user = User.objects.get(pk=request.data['user_id'])
+            group.user_set.remove(user)
+            return Response({'status': 'user removed'})
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+
 

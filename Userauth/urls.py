@@ -9,6 +9,13 @@ router.register('unauthuser', UnauthUserViewSet)
 router.register('userdetail', UserDetailViewSet)
 router.register('setting', SettingViewSet)
 
+from django.urls import path, include
+from rest_framework import routers
+from .views import GroupViewSet
+
+router = routers.DefaultRouter()
+router.register('groups', GroupViewSet, basename="group")
+
 urlpatterns = [
     path('', include(router.urls)),
     path('userauth/', UserAuthAPI.as_view()),
@@ -22,7 +29,6 @@ urlpatterns = [
     path('groups/', GroupListView.as_view(), name='group-list'),
     path('groups/<int:id>/add-users/', GroupUserAddView.as_view(), name='group-add-users'),
     path('groups/<int:id>/remove-users/', GroupUserRemoveView.as_view(), name='group-remove-users'),
-
 ]
 
 
