@@ -18,7 +18,7 @@ import uuid
 import random
 from rest_framework.authtoken.models import Token
 from rest_framework import generics
-
+from .serializers import ChangePasswordSerializer
 from rest_framework import status
 from pushnotification.models import Setting
 
@@ -26,6 +26,7 @@ from django.contrib.auth.models import Group
 from django.contrib.auth.models import User  
 
 
+from django.contrib.auth.hashers import check_password
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -824,6 +825,33 @@ class GroupViewSet(viewsets.ModelViewSet):
     serializer_class = AuthGroupSerializer
 
 
+
+class ChangePasswordView(APIView):
+    def post(self, request):
+        user_id = request.data.get('user_id')
+        old_password = request.data.get('old_password')
+        new_password = request.data.get('new_password')
+        confirm_password = request.data.get('confirm_password')
+        
+        # Retrieve the user from the database
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Check if the old password matches
+        if not check_password(old_password, user.password):
+            return Response({"error": "Old password is incorrect"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check if the new password and confirm password match
+        if new_password != confirm_password:
+            return Response({"error": "New password and confirm password do not match"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Update the user's password
+        user.set_password(new_password)
+        user.save()
+        
+        return Response({"message": "Password updated successfully"}, status=status.HTTP_200_OK)
 
 
 
