@@ -88,7 +88,7 @@ class AuthGroupSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Group
-        fields = ['id', 'name', 'user_set', 'user_details']
+        fields = ['id', 'name', 'user_details']
 
     def get_user_details(self, obj):
         users = obj.user_set.all()
