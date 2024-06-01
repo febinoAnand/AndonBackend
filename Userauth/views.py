@@ -785,7 +785,7 @@ class ResendOTPView(views.APIView):
         response_data = {
             "status": "OK",
             "message": "OTP resent successfully",
-            "session_id": jsondata["session_id"],
+            "session_id": jsondata["sessionID"],
             "otp_resend_interval": user_auth_setting.OTP_resend_interval,
             "otp_expiry_time": user_auth_setting.OTP_valid_time
         }
