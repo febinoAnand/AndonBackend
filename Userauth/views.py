@@ -548,9 +548,12 @@ class UserVerifyView(views.APIView):
 
        
         try:
-            setting = Setting.objects.first()
+            setting = UserAuthSetting.objects.first()
             if not setting:
-                return Response({'error': 'No settings found'}, status=status.HTTP_404_NOT_FOUND)
+                responseData["status"] = "INVALID"
+                responseData["message"] = "No settings found in dashboard"
+                return  JsonResponse(responseData)
+                # return Response({'error': 'No settings found'}, status=status.HTTP_404_NOT_FOUND)
 
             responseData = {
                 "status": "OK",
@@ -560,11 +563,12 @@ class UserVerifyView(views.APIView):
             }
 
             return Response(responseData, status=status.HTTP_200_OK)
-        except Setting.DoesNotExist:
-            return Response({'error': 'Settings not found'}, status=status.HTTP_404_NOT_FOUND)
+        except UserAuthSetting.DoesNotExist:
+            responseData["status"] = "INVALID"
+            responseData["message"] = "No settings found in dashboard"
+            return  JsonResponse(responseData)
         
         
-
 
 class UserRegisterView(views.APIView):
     def get(self,request):
