@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from rest_framework import viewsets,views
-from .models import UnauthUser, UserDetail, Setting
+from .models import UnauthUser, UserDetail
 from .serializers import *
 from django.http import JsonResponse, HttpResponseNotFound, HttpResponseBadRequest
 import json
@@ -20,7 +20,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework import generics
 from .serializers import ChangePasswordSerializer
 from rest_framework import status
-from pushnotification.models import Setting
+from pushnotification.models import Setting as pushNotificaitionSettings
 
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import User  
@@ -47,7 +47,7 @@ class UserDetailViewSet(viewsets.ModelViewSet):
 
 class SettingViewSet(viewsets.ModelViewSet):
     serializer_class = SettingSerializer
-    queryset = Setting.objects.all().order_by('-pk')
+    queryset = UserAuthSetting.objects.all().order_by('-pk')
 
 
 class UserAuthAPI(views.APIView):
@@ -548,10 +548,10 @@ class UserVerifyView(views.APIView):
 
        
         try:
-            setting = UserAuthSetting.objects.first()
+            setting = pushNotificaitionSettings.objects.first()
             if not setting:
                 responseData["status"] = "INVALID"
-                responseData["message"] = "No settings found in dashboard"
+                responseData["message"] = "No settings found in Push Notification"
                 return  JsonResponse(responseData)
                 # return Response({'error': 'No settings found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -563,9 +563,9 @@ class UserVerifyView(views.APIView):
             }
 
             return Response(responseData, status=status.HTTP_200_OK)
-        except UserAuthSetting.DoesNotExist:
+        except pushNotificaitionSettings.DoesNotExist:
             responseData["status"] = "INVALID"
-            responseData["message"] = "No settings found in dashboard"
+            responseData["message"] = "No settings found in Push Notification"
             return  JsonResponse(responseData)
         
         
