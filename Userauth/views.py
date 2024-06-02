@@ -749,32 +749,68 @@ class ResendOTPView(views.APIView):
         # print(request.body)
         return HttpResponseNotFound()
     def post(self, request):
+
+        ########################### POST FLOW ##################################
+
+        #check valid Json data in request 
+        jsondata = {}
         try:
             jsondata = json.loads(request.body)
         except Exception as e:
-            print(e)
+            print (e)                       #TODO : save the exception in Log File
+            return HttpResponseNotFound()
+        
+        
+        #check app_token valid with Settings...
+        if "appToken" not in jsondata:
+            return HttpResponseNotFound()
+        
+        if jsondata["appToken"] != settings.APP_TOKEN:
             return HttpResponseNotFound()
 
-        required_fields = ["sessionID", "appToken"]
-        if not all(field in jsondata for field in required_fields):
-            return HttpResponseBadRequest("Missing required fields")
 
-        if jsondata["appToken"] != settings.APP_TOKEN:
-            return HttpResponseNotFound("Invalid app token")
-        unauth_user = UnauthUser.objects.filter(session_id=jsondata["sessionID"]).first()
+        #Validate the Post Data....
+        userAuthSerializer = UserAuthResendSerializer(data=jsondata)
+        if not userAuthSerializer.is_valid():
+            return HttpResponseBadRequest()
+
+
+        #getting currentDate and Time
+        currentDate = datetime.now().strftime("%Y-%m-%d")
+        currentTime = datetime.now().strftime("%H:%M:%S")
+        currentDateTime = datetime.now()
+        # print (currentDate,currentTime)
+
+        ########################### POST FLOW  END HERE ##################################
+
+
+        unAuthUser = UnauthUser.objects.filter(session_id=jsondata["sessionID"]).first()
 
         # if not unauth_user:
         #     return HttpResponseNotFound("Session not found")
-        response_data = {}
-        if not unauth_user:
-            response_data["status"] = "INVALID"
-            response_data["message"] = "Session Expired Try again"
-            return  JsonResponse(response_data)
+        #compare device id
+
+
+        responseData = {}
+        if not unAuthUser:
+            responseData["status"] = "INVALID"
+            responseData["message"] = "Session Expired Try again"
+            return  JsonResponse(responseData)
+        
+
+
+        if unAuthUser.device_id != jsondata["deviceID"]:
+            # print("Session Found device not match")
+            unAuthUser.delete()
+            responseData["status"] = "INVALID"
+            responseData["message"] = "Device Mismatch. Try again"
+            return  JsonResponse(responseData)
+            
         
         user_auth_setting = UserAuthSetting.objects.first()
         expiry_time = user_auth_setting.unAuth_user_expiry_time
         current_time = datetime.now()
-        session_creation_time = unauth_user.createdatetime
+        session_creation_time = unAuthUser.createdatetime
         time_difference = (current_time - session_creation_time).total_seconds()
 
         if time_difference > expiry_time:
@@ -783,9 +819,9 @@ class ResendOTPView(views.APIView):
             return  JsonResponse(response_data)
 
         new_otp = generate_otp()
-        unauth_user.otp = new_otp
-        unauth_user.save()
-        SendOTPSMS(unauth_user.mobile_no, new_otp)
+        unAuthUser.otp = new_otp
+        unAuthUser.save()
+        SendOTPSMS(unAuthUser.mobile_no, new_otp)
 
         response_data = {
             "status": "OK",

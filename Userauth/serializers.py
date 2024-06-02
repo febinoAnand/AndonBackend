@@ -68,6 +68,12 @@ class UserAuthRegisterSerializer(serializers.Serializer):
     notificationID = serializers.CharField(max_length=50, required=True,allow_null=False)
 
 
+class UserAuthResendSerializer(serializers.Serializer):
+    appToken = serializers.UUIDField(required=True,allow_null=False)
+    sessionID = serializers.UUIDField(required=True,allow_null=False)
+    deviceID = serializers.UUIDField(required=True,allow_null=False)
+
+
 
 class UserSerializer(serializers.ModelSerializer):
     mobile_no = serializers.SerializerMethodField()
