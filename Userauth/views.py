@@ -21,6 +21,7 @@ from rest_framework import generics
 from .serializers import ChangePasswordSerializer
 from rest_framework import status
 from pushnotification.models import Setting as pushNotificaitionSettings
+from pushnotification.models import NotificationAuth
 
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import User  
@@ -627,6 +628,7 @@ class UserRegisterView(views.APIView):
         
         unAuthUser = unAuthUser[0]
         userDetails = UserDetail.objects.filter(extUser__email=unAuthUser.emailaddress)
+        
 
 
         #calculate time between createat and currentdatetime
@@ -669,8 +671,8 @@ class UserRegisterView(views.APIView):
         # set inactive to the user
         # save deviceid and other details in userdetails
         if len(userDetails) > 0:
-            for user in userDetails:
-                print(user)
+            # for user in userDetails:
+            #     print(user)
 
             userDetails = userDetails[0]
             userDetails.mobile_no = unAuthUser.mobile_no
@@ -679,8 +681,16 @@ class UserRegisterView(views.APIView):
             userDetails.extUser.password = jsondata["password"]
             userDetails.extUser.first_name = jsondata["name"]
             userDetails.extUser.is_active = False
+            # userDetails.extUser.user_name.noti_token = jsondata["notificationID"]
+            # userDetails.extUser.user_name.save()
             userDetails.extUser.save()
             userDetails.save()  
+
+            pushNotificationUser = NotificationAuth.objects.filter(user_to_auth=userDetails.extUser)
+            if len(pushNotificationUser)>0:
+                pushNotificationUser = pushNotificationUser[0]
+                pushNotificationUser.noti_token = jsondata["notificationID"]
+                pushNotificationUser.save()
 
         else:
             user = User.objects.create_user(
@@ -698,6 +708,11 @@ class UserRegisterView(views.APIView):
                 mobile_no = unAuthUser.mobile_no,
                 device_id = unAuthUser.device_id
             )
+
+            notificationUser = NotificationAuth.objects.create(
+                user_to_auth = user,
+                noti_token = jsondata["notificationID"]
+            )
         
         # delete unauther user
         unAuthUser.delete()
@@ -705,7 +720,7 @@ class UserRegisterView(views.APIView):
         #send response
         responseData["status"] = "OK"
         responseData["session_id"] = jsondata["sessionID"]
-        # responseData["verification_id"] = generatedVerifiationID
+        responseData["message"] = "Registration Successfull"
         return JsonResponse(responseData)
 
     
