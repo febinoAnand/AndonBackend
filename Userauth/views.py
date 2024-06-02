@@ -438,6 +438,7 @@ class UserAuthPrompt(views.APIView):
         # update otp in the 
         unAuthUser.otp = generatedOTP
         unAuthUser.createdatetime = currentDateTime
+        unAuthUser.save()
 
         # call SMS api
         SendOTPSMS(unAuthUser.mobile_no,generatedOTP)
