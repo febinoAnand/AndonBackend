@@ -808,18 +808,38 @@ class ResendOTPView(views.APIView):
             
         
         user_auth_setting = UserAuthSetting.objects.first()
-        expiry_time = user_auth_setting.unAuth_user_expiry_time
-        current_time = datetime.now()
-        session_creation_time = unAuthUser.createdatetime
-        time_difference = (current_time - session_creation_time).total_seconds()
+        # expiry_time = user_auth_setting.unAuth_user_expiry_time
 
-        if time_difference > expiry_time:
-            response_data["status"] = "INVALID"
-            response_data["message"] = "Session Expired Try again"
-            return  JsonResponse(response_data)
+        # current_time = datetime.now()
+        # session_creation_time = unAuthUser.createdatetime
+        # time_difference = (currentDateTime - session_creation_time).total_seconds()
+
+        # if time_difference > expiry_time:
+        #     response_data["status"] = "INVALID"
+        #     response_data["message"] = "Session Expired Try again"
+        #     return  JsonResponse(response_data)
+        
+        OTP_call_count = unAuthUser.otp_called
+            
+        OTP_call_count += 1
+
+        if OTP_call_count > user_auth_setting.OTP_call_count:
+
+            secondsBetweenTime = compareAndGetSeconds(unAuthUser.createdatetime,currentDateTime)
+            print("seconds->",secondsBetweenTime)
+            print("settings seconds ->",user_auth_setting.unAuth_user_expiry_time)
+            if not secondsBetweenTime > user_auth_setting.unAuth_user_expiry_time:
+                responseData["status"] = "INVALID"
+                responseData["message"] = "Tried Too many times. Try after {minutes}min".format(minutes=int(user_auth_setting.unAuth_user_expiry_time/60))
+                return JsonResponse(responseData)
+            else:
+                OTP_call_count = 0
+                OTP_call_count += 1
 
         new_otp = generate_otp()
         unAuthUser.otp = new_otp
+        unAuthUser.createdatetime = currentDateTime
+        unAuthUser.otp_called = OTP_call_count
         unAuthUser.save()
         SendOTPSMS(unAuthUser.mobile_no, new_otp)
 
