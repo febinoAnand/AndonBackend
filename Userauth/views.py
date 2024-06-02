@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from rest_framework import viewsets,views
-from .models import UnauthUser, UserDetail, Setting
+from .models import UnauthUser, UserDetail
 from .serializers import *
 from django.http import JsonResponse, HttpResponseNotFound, HttpResponseBadRequest
 import json
@@ -20,7 +20,8 @@ from rest_framework.authtoken.models import Token
 from rest_framework import generics
 from .serializers import ChangePasswordSerializer
 from rest_framework import status
-from pushnotification.models import Setting
+from pushnotification.models import Setting as pushNotificaitionSettings
+from pushnotification.models import NotificationAuth
 
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import User  
@@ -47,7 +48,7 @@ class UserDetailViewSet(viewsets.ModelViewSet):
 
 class SettingViewSet(viewsets.ModelViewSet):
     serializer_class = SettingSerializer
-    queryset = Setting.objects.all().order_by('-pk')
+    queryset = UserAuthSetting.objects.all().order_by('-pk')
 
 
 class UserAuthAPI(views.APIView):
@@ -438,6 +439,7 @@ class UserAuthPrompt(views.APIView):
         # update otp in the 
         unAuthUser.otp = generatedOTP
         unAuthUser.createdatetime = currentDateTime
+        unAuthUser.save()
 
         # call SMS api
         SendOTPSMS(unAuthUser.mobile_no,generatedOTP)
@@ -548,9 +550,12 @@ class UserVerifyView(views.APIView):
 
        
         try:
-            setting = Setting.objects.first()
+            setting = pushNotificaitionSettings.objects.first()
             if not setting:
-                return Response({'error': 'No settings found'}, status=status.HTTP_404_NOT_FOUND)
+                responseData["status"] = "INVALID"
+                responseData["message"] = "No settings found in Push Notification"
+                return  JsonResponse(responseData)
+                # return Response({'error': 'No settings found'}, status=status.HTTP_404_NOT_FOUND)
 
             responseData = {
                 "status": "OK",
@@ -560,11 +565,12 @@ class UserVerifyView(views.APIView):
             }
 
             return Response(responseData, status=status.HTTP_200_OK)
-        except Setting.DoesNotExist:
-            return Response({'error': 'Settings not found'}, status=status.HTTP_404_NOT_FOUND)
+        except pushNotificaitionSettings.DoesNotExist:
+            responseData["status"] = "INVALID"
+            responseData["message"] = "No settings found in Push Notification"
+            return  JsonResponse(responseData)
         
         
-
 
 class UserRegisterView(views.APIView):
     def get(self,request):
@@ -622,6 +628,7 @@ class UserRegisterView(views.APIView):
         
         unAuthUser = unAuthUser[0]
         userDetails = UserDetail.objects.filter(extUser__email=unAuthUser.emailaddress)
+        
 
 
         #calculate time between createat and currentdatetime
@@ -664,8 +671,8 @@ class UserRegisterView(views.APIView):
         # set inactive to the user
         # save deviceid and other details in userdetails
         if len(userDetails) > 0:
-            for user in userDetails:
-                print(user)
+            # for user in userDetails:
+            #     print(user)
 
             userDetails = userDetails[0]
             userDetails.mobile_no = unAuthUser.mobile_no
@@ -674,8 +681,16 @@ class UserRegisterView(views.APIView):
             userDetails.extUser.password = jsondata["password"]
             userDetails.extUser.first_name = jsondata["name"]
             userDetails.extUser.is_active = False
+            # userDetails.extUser.user_name.noti_token = jsondata["notificationID"]
+            # userDetails.extUser.user_name.save()
             userDetails.extUser.save()
             userDetails.save()  
+
+            pushNotificationUser = NotificationAuth.objects.filter(user_to_auth=userDetails.extUser)
+            if len(pushNotificationUser)>0:
+                pushNotificationUser = pushNotificationUser[0]
+                pushNotificationUser.noti_token = jsondata["notificationID"]
+                pushNotificationUser.save()
 
         else:
             user = User.objects.create_user(
@@ -693,6 +708,11 @@ class UserRegisterView(views.APIView):
                 mobile_no = unAuthUser.mobile_no,
                 device_id = unAuthUser.device_id
             )
+
+            notificationUser = NotificationAuth.objects.create(
+                user_to_auth = user,
+                noti_token = jsondata["notificationID"]
+            )
         
         # delete unauther user
         unAuthUser.delete()
@@ -700,7 +720,7 @@ class UserRegisterView(views.APIView):
         #send response
         responseData["status"] = "OK"
         responseData["session_id"] = jsondata["sessionID"]
-        # responseData["verification_id"] = generatedVerifiationID
+        responseData["message"] = "Registration Successfull"
         return JsonResponse(responseData)
 
     
@@ -744,48 +764,104 @@ class ResendOTPView(views.APIView):
         # print(request.body)
         return HttpResponseNotFound()
     def post(self, request):
+
+        ########################### POST FLOW ##################################
+
+        #check valid Json data in request 
+        jsondata = {}
         try:
             jsondata = json.loads(request.body)
         except Exception as e:
-            print(e)
+            print (e)                       #TODO : save the exception in Log File
+            return HttpResponseNotFound()
+        
+        
+        #check app_token valid with Settings...
+        if "appToken" not in jsondata:
+            return HttpResponseNotFound()
+        
+        if jsondata["appToken"] != settings.APP_TOKEN:
             return HttpResponseNotFound()
 
-        required_fields = ["sessionID", "appToken"]
-        if not all(field in jsondata for field in required_fields):
-            return HttpResponseBadRequest("Missing required fields")
 
-        if jsondata["appToken"] != settings.APP_TOKEN:
-            return HttpResponseNotFound("Invalid app token")
-        unauth_user = UnauthUser.objects.filter(session_id=jsondata["sessionID"]).first()
+        #Validate the Post Data....
+        userAuthSerializer = UserAuthResendSerializer(data=jsondata)
+        if not userAuthSerializer.is_valid():
+            return HttpResponseBadRequest()
+
+
+        #getting currentDate and Time
+        currentDate = datetime.now().strftime("%Y-%m-%d")
+        currentTime = datetime.now().strftime("%H:%M:%S")
+        currentDateTime = datetime.now()
+        # print (currentDate,currentTime)
+
+        ########################### POST FLOW  END HERE ##################################
+
+
+        unAuthUser = UnauthUser.objects.filter(session_id=jsondata["sessionID"]).first()
 
         # if not unauth_user:
         #     return HttpResponseNotFound("Session not found")
-        response_data = {}
-        if not unauth_user:
-            response_data["status"] = "INVALID"
-            response_data["message"] = "Session Expired Try again"
-            return  JsonResponse(response_data)
+        #compare device id
+
+
+        responseData = {}
+        if not unAuthUser:
+            responseData["status"] = "INVALID"
+            responseData["message"] = "Session Expired Try again"
+            return  JsonResponse(responseData)
+        
+
+
+        if unAuthUser.device_id != jsondata["deviceID"]:
+            # print("Session Found device not match")
+            unAuthUser.delete()
+            responseData["status"] = "INVALID"
+            responseData["message"] = "Device Mismatch. Try again"
+            return  JsonResponse(responseData)
+            
         
         user_auth_setting = UserAuthSetting.objects.first()
-        expiry_time = user_auth_setting.unAuth_user_expiry_time
-        current_time = datetime.now()
-        session_creation_time = unauth_user.createdatetime
-        time_difference = (current_time - session_creation_time).total_seconds()
+        # expiry_time = user_auth_setting.unAuth_user_expiry_time
 
-        if time_difference > expiry_time:
-            response_data["status"] = "INVALID"
-            response_data["message"] = "Session Expired Try again"
-            return  JsonResponse(response_data)
+        # current_time = datetime.now()
+        # session_creation_time = unAuthUser.createdatetime
+        # time_difference = (currentDateTime - session_creation_time).total_seconds()
+
+        # if time_difference > expiry_time:
+        #     response_data["status"] = "INVALID"
+        #     response_data["message"] = "Session Expired Try again"
+        #     return  JsonResponse(response_data)
+        
+        OTP_call_count = unAuthUser.otp_called
+            
+        OTP_call_count += 1
+
+        if OTP_call_count > user_auth_setting.OTP_call_count:
+
+            secondsBetweenTime = compareAndGetSeconds(unAuthUser.createdatetime,currentDateTime)
+            print("seconds->",secondsBetweenTime)
+            print("settings seconds ->",user_auth_setting.unAuth_user_expiry_time)
+            if not secondsBetweenTime > user_auth_setting.unAuth_user_expiry_time:
+                responseData["status"] = "INVALID"
+                responseData["message"] = "Tried Too many times. Try after {minutes}min".format(minutes=int(user_auth_setting.unAuth_user_expiry_time/60))
+                return JsonResponse(responseData)
+            else:
+                OTP_call_count = 0
+                OTP_call_count += 1
 
         new_otp = generate_otp()
-        unauth_user.otp = new_otp
-        unauth_user.save()
-        SendOTPSMS(unauth_user.mobile_no, new_otp)
+        unAuthUser.otp = new_otp
+        unAuthUser.createdatetime = currentDateTime
+        unAuthUser.otp_called = OTP_call_count
+        unAuthUser.save()
+        SendOTPSMS(unAuthUser.mobile_no, new_otp)
 
         response_data = {
             "status": "OK",
             "message": "OTP resent successfully",
-            "session_id": jsondata["session_id"],
+            "session_id": jsondata["sessionID"],
             "otp_resend_interval": user_auth_setting.OTP_resend_interval,
             "otp_expiry_time": user_auth_setting.OTP_valid_time
         }
