@@ -54,7 +54,6 @@ INSTALLED_APPS = [
     'data',
     'emailtracking',
     'rest_framework',
-    
     'smsgateway',
     'pushnotification',
     'corsheaders',
@@ -71,15 +70,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'Userauth.middleware.TokenAuthMiddleware',
+    'corsheaders.middleware.CorsMiddleware'
 ]
 
-
-SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'  
-
-
 REST_FRAMEWORK = {'DEFAULT_PERMISSION_CLASSES':['rest_framework.permissions.AllowAny'],
-                  
                   }
 
 CORS_ORIGIN_ALLOW_ALL = True
