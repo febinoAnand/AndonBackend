@@ -902,29 +902,7 @@ class GroupViewSet(viewsets.ModelViewSet):
 
 
 
-class ChangePasswordView(APIView):
-    def post(self, request):
-        user_id = request.data.get('user_id')
-        old_password = request.data.get('old_password')
-        new_password = request.data.get('new_password')
-        confirm_password = request.data.get('confirm_password')
-        
-        try:
-            user = User.objects.get(pk=user_id)
-        except User.DoesNotExist:
-            return Response({"error": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
-        
 
-        if not check_password(old_password, user.password):
-            return Response({"error": "Old password is incorrect"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        if new_password != confirm_password:
-            return Response({"error": "New password and confirm password do not match"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        user.set_password(new_password)
-        user.save()
-        
-        return Response({"message": "Password updated successfully"}, status=status.HTTP_200_OK)
 
                                 #user_Login_view#
 
@@ -964,9 +942,9 @@ class LoginView(APIView):
                     'message': 'Login successful'
                 })
             else:
-                return Response({'status': 'INVALID','message': 'Device ID mismatch'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'status': 'INVALID','message': 'Device ID mismatch'}, status=status.HTTP_200_OK)
 
-        return Response({'status': 'INVALID','message': 'Invalid Credentials'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'status': 'INVALID','message': 'Invalid Credentials'}, status=status.HTTP_200_OK)
 
     def get_existing_token(self, request, user_id):
         for key, value in request.session.items():
@@ -990,17 +968,17 @@ class LogoutView(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         if header_token is None:
-            return Response({'status': 'INVALID', 'message': 'Authorization header missing'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'status': 'INVALID', 'message': 'Authorization header missing'}, status=status.HTTP_200_OK)
 
         user_id = self.get_user_id_from_token(request, header_token)
 
         if not user_id:
-            return Response({'status': 'INVALID', 'message': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'status': 'INVALID', 'message': 'Unauthorized'}, status=status.HTTP_200_OK)
 
         user_detail = UserDetail.objects.filter(extUser_id=user_id, device_id=device_id).first()
 
         if not user_detail:
-            return Response({'status': 'INVALID', 'message': 'Invalid device ID'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'status': 'INVALID', 'message': 'Invalid device ID'}, status=status.HTTP_200_OK)
 
         request.session.clear()
 
@@ -1026,24 +1004,24 @@ class ChangePasswordView(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         if header_token is None:
-            return Response({'status': 'INVALID', 'message': 'Authorization header missing'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'status': 'INVALID', 'message': 'Authorization header missing'}, status=status.HTTP_200_OK)
 
         user_id = self.get_user_id_from_token(request, header_token)
 
         if not user_id:
-            return Response({'status': 'INVALID', 'message': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'status': 'INVALID', 'message': 'Unauthorized'}, status=status.HTTP_200_OK)
 
         user_detail = UserDetail.objects.filter(extUser_id=user_id, device_id=device_id).first()
         if not user_detail:
-            return Response({'status': 'INVALID', 'message': 'Invalid device ID'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'status': 'INVALID', 'message': 'Invalid device ID'}, status=status.HTTP_200_OK)
 
         try:
             user = User.objects.get(pk=user_id)
         except User.DoesNotExist:
-            return Response({"status": "INVALID", "message": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"status": "INVALID", "message": "User does not exist"}, status=status.HTTP_200_OK)
 
         if not check_password(old_password, user.password):
-            return Response({"status": "INVALID", "message": "Old password is incorrect"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"status": "INVALID", "message": "Old password is incorrect"}, status=status.HTTP_200_OK)
 
         user.set_password(new_password)
         user.save()
