@@ -937,6 +937,9 @@ class LoginView(APIView):
         username = serializer.validated_data['username']
         password = serializer.validated_data['password']
         device_id = serializer.validated_data['device_id']
+        
+        if app_token != settings.APP_TOKEN:  
+            return Response({'Status': 'Invalid', 'Message': 'App token mismatch'}, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
             user = User.objects.filter(username=username).first()
