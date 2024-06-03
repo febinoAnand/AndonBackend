@@ -20,7 +20,7 @@ urlpatterns = [
     path('resendotp/', ResendOTPView.as_view()),
     path('userauthtoken/', obtain_auth_token, name='userauthtoken'),
     path('revoke-token/', RevokeAuthToken.as_view(), name='revoke_token'),
-    path('change-password/', ChangePasswordView.as_view(), name='change-password'),
+    path('userchangepassword/', ChangePasswordView.as_view(), name='change-password'),
     path('userlogin/', LoginView.as_view(), name='login'),
     path('userlogout/', LogoutView.as_view(), name='logout'),
 ]

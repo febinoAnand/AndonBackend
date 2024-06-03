@@ -929,7 +929,6 @@ class ChangePasswordView(APIView):
                                 #user_Login_view#
 
 
-
 class LoginView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = LoginSerializer(data=request.data)
@@ -1009,3 +1008,47 @@ class LogoutView(APIView):
 
     def get_user_id_from_token(self, request, token):
         return request.session.get(token)
+                      
+                      #user_changepassword_view#
+
+class ChangePasswordView(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = ChangePasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        app_token = serializer.validated_data.get('app_token')
+        device_id = serializer.validated_data.get('device_id')
+        old_password = serializer.validated_data.get('old_password')
+        new_password = serializer.validated_data.get('new_password')
+        header_token = request.headers.get('Authorization')
+
+        if app_token != settings.APP_TOKEN:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        if header_token is None:
+            return Response({'status': 'INVALID', 'message': 'Authorization header missing'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user_id = self.get_user_id_from_token(request, header_token)
+
+        if not user_id:
+            return Response({'status': 'INVALID', 'message': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        user_detail = UserDetail.objects.filter(extUser_id=user_id, device_id=device_id).first()
+        if not user_detail:
+            return Response({'status': 'INVALID', 'message': 'Invalid device ID'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({"status": "INVALID", "message": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
+
+        if not check_password(old_password, user.password):
+            return Response({"status": "INVALID", "message": "Old password is incorrect"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.save()
+
+        return Response({"status": "OK", "message": "Password updated successfully"}, status=status.HTTP_200_OK)
+
+    def get_user_id_from_token(self, request, token):
+        return request.session.get(token)  
