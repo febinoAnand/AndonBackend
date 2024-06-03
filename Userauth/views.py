@@ -927,5 +927,19 @@ class ChangePasswordView(APIView):
 
 
 
+import uuid
 
-
+class LoginView(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        username = serializer.validated_data['username']
+        password = serializer.validated_data['password']
+        user = User.objects.filter(username=username).first()
+        if user and user.check_password(password):
+            token = str(uuid.uuid4())
+            request.session[token] = user.id
+            return Response({
+                'token': token,
+            })
+        return Response({'error': 'Invalid Credentials'}, status=status.HTTP_400_BAD_REQUEST)
