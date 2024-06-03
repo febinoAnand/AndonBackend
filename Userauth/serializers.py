@@ -116,7 +116,8 @@ class LoginSerializer(serializers.Serializer):
 class LogoutSerializer(serializers.Serializer):
     app_token = serializers.CharField()
     device_id = serializers.CharField()
-    header_token = serializers.CharField()
+
+  
 
 
 

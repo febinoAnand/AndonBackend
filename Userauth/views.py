@@ -928,7 +928,7 @@ class ChangePasswordView(APIView):
 
                                 #user_Login_view#
 
-from django.contrib.sessions.backends.db import SessionStore
+
 
 class LoginView(APIView):
     def post(self, request, *args, **kwargs):
@@ -941,7 +941,7 @@ class LoginView(APIView):
         device_id = serializer.validated_data['device_id']
 
         if app_token != settings.APP_TOKEN:  
-            return Response({'status': 'Invalid', 'message': 'App token mismatch'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         user = User.objects.filter(username=username).first()
 
@@ -965,15 +965,18 @@ class LoginView(APIView):
                     'message': 'Login successful'
                 })
             else:
-                return Response({'status': 'Invalid','message': 'Device ID mismatch'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'status': 'INVALID','message': 'Device ID mismatch'}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({'status': 'Invalid','message': 'Invalid Credentials'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'status': 'INVALID','message': 'Invalid Credentials'}, status=status.HTTP_400_BAD_REQUEST)
 
     def get_existing_token(self, request, user_id):
         for key, value in request.session.items():
             if value == user_id:
                 return key
         return None
+    
+
+                                   #user_Logout_view#
 
 class LogoutView(APIView):
     def post(self, request, *args, **kwargs):
@@ -985,24 +988,24 @@ class LogoutView(APIView):
         header_token = request.headers.get('Authorization')
 
         if app_token != settings.APP_TOKEN:
-            return Response({'status': 'Invalid', 'message': 'App token mismatch'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         if header_token is None:
-            return Response({'status': 'Invalid', 'message': 'Authorization header missing'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'status': 'INVALID', 'message': 'Authorization header missing'}, status=status.HTTP_400_BAD_REQUEST)
 
         user_id = self.get_user_id_from_token(request, header_token)
 
         if not user_id:
-            return Response({'status': 'Invalid', 'message': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'status': 'INVALID', 'message': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
 
         user_detail = UserDetail.objects.filter(extUser_id=user_id, device_id=device_id).first()
 
         if not user_detail:
-            return Response({'status': 'Invalid', 'message': 'Invalid device ID'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'status': 'INVALID', 'message': 'Invalid device ID'}, status=status.HTTP_400_BAD_REQUEST)
 
         request.session.clear()
 
         return Response({'status': 'OK', 'message': 'Logout successful'})
 
-    def get_user_id_from_token(self, request, header_token):
-        return request.session.get(header_token)
+    def get_user_id_from_token(self, request, token):
+        return request.session.get(token)
