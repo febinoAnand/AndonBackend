@@ -26,6 +26,7 @@ from pushnotification.models import NotificationAuth
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import User  
 
+from django.db import transaction
 
 from django.contrib.auth.hashers import check_password
 from rest_framework import viewsets, status
@@ -901,31 +902,131 @@ class GroupViewSet(viewsets.ModelViewSet):
 
 
 
+
+
+                                #user_Login_view#
+
+
+class LoginView(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        app_token = serializer.validated_data['app_token']
+        username = serializer.validated_data['username']
+        password = serializer.validated_data['password']
+        device_id = serializer.validated_data['device_id']
+
+        if app_token != settings.APP_TOKEN:  
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.filter(username=username).first()
+
+        if user and user.check_password(password):
+            user_detail = UserDetail.objects.filter(extUser=user).first()
+
+            if user_detail and device_id in user_detail.device_id:
+                existing_token = self.get_existing_token(request, user.id)
+                if existing_token:
+                    return Response({
+                        'status': 'OK',
+                        'token': existing_token,
+                        'message': 'Login successful'
+                    })
+
+                token = str(uuid.uuid4())
+                request.session[token] = user.id
+                return Response({
+                    'status': 'OK',
+                    'token': token,
+                    'message': 'Login successful'
+                })
+            else:
+                return Response({'status': 'INVALID','message': 'Device ID mismatch'}, status=status.HTTP_200_OK)
+
+        return Response({'status': 'INVALID','message': 'Invalid Credentials'}, status=status.HTTP_200_OK)
+
+    def get_existing_token(self, request, user_id):
+        for key, value in request.session.items():
+            if value == user_id:
+                return key
+        return None
+    
+
+                                   #user_Logout_view#
+
+class LogoutView(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = LogoutSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        app_token = serializer.validated_data.get('app_token')
+        device_id = serializer.validated_data.get('device_id')
+        header_token = request.headers.get('Authorization')
+
+        if app_token != settings.APP_TOKEN:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        if header_token is None:
+            return Response({'status': 'INVALID', 'message': 'Authorization header missing'}, status=status.HTTP_200_OK)
+
+        user_id = self.get_user_id_from_token(request, header_token)
+
+        if not user_id:
+            return Response({'status': 'INVALID', 'message': 'Unauthorized'}, status=status.HTTP_200_OK)
+
+        user_detail = UserDetail.objects.filter(extUser_id=user_id, device_id=device_id).first()
+
+        if not user_detail:
+            return Response({'status': 'INVALID', 'message': 'Invalid device ID'}, status=status.HTTP_200_OK)
+
+        request.session.clear()
+
+        return Response({'status': 'OK', 'message': 'Logout successful'})
+
+    def get_user_id_from_token(self, request, token):
+        return request.session.get(token)
+                      
+                      #user_changepassword_view#
+
 class ChangePasswordView(APIView):
-    def post(self, request):
-        user_id = request.data.get('user_id')
-        old_password = request.data.get('old_password')
-        new_password = request.data.get('new_password')
-        confirm_password = request.data.get('confirm_password')
-        
+    def post(self, request, *args, **kwargs):
+        serializer = ChangePasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        app_token = serializer.validated_data.get('app_token')
+        device_id = serializer.validated_data.get('device_id')
+        old_password = serializer.validated_data.get('old_password')
+        new_password = serializer.validated_data.get('new_password')
+        header_token = request.headers.get('Authorization')
+
+        if app_token != settings.APP_TOKEN:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        if header_token is None:
+            return Response({'status': 'INVALID', 'message': 'Authorization header missing'}, status=status.HTTP_200_OK)
+
+        user_id = self.get_user_id_from_token(request, header_token)
+
+        if not user_id:
+            return Response({'status': 'INVALID', 'message': 'Unauthorized'}, status=status.HTTP_200_OK)
+
+        user_detail = UserDetail.objects.filter(extUser_id=user_id, device_id=device_id).first()
+        if not user_detail:
+            return Response({'status': 'INVALID', 'message': 'Invalid device ID'}, status=status.HTTP_200_OK)
+
         try:
             user = User.objects.get(pk=user_id)
         except User.DoesNotExist:
-            return Response({"error": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
-        
+            return Response({"status": "INVALID", "message": "User does not exist"}, status=status.HTTP_200_OK)
 
         if not check_password(old_password, user.password):
-            return Response({"error": "Old password is incorrect"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        if new_password != confirm_password:
-            return Response({"error": "New password and confirm password do not match"}, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response({"status": "INVALID", "message": "Old password is incorrect"}, status=status.HTTP_200_OK)
+
         user.set_password(new_password)
         user.save()
-        
-        return Response({"message": "Password updated successfully"}, status=status.HTTP_200_OK)
 
+        return Response({"status": "OK", "message": "Password updated successfully"}, status=status.HTTP_200_OK)
 
-
-
-
+    def get_user_id_from_token(self, request, token):
+        return request.session.get(token)  
