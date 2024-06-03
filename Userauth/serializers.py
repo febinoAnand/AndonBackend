@@ -108,8 +108,10 @@ class AuthGroupSerializer(serializers.ModelSerializer):
 
 
 class LoginSerializer(serializers.Serializer):
-    username = serializers.CharField()
-    password = serializers.CharField(write_only=True)
+    app_token = serializers.CharField(required=True)
+    username = serializers.CharField(required=True)
+    password = serializers.CharField(required=True)
+    device_id = serializers.CharField(required=True)
 
 
 

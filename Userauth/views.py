@@ -925,21 +925,34 @@ class ChangePasswordView(APIView):
         
         return Response({"message": "Password updated successfully"}, status=status.HTTP_200_OK)
 
-
-
+from django.db import transaction
 import uuid
 
 class LoginView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        app_token = serializer.validated_data['app_token']
         username = serializer.validated_data['username']
         password = serializer.validated_data['password']
-        user = User.objects.filter(username=username).first()
-        if user and user.check_password(password):
-            token = str(uuid.uuid4())
-            request.session[token] = user.id
-            return Response({
-                'token': token,
-            })
-        return Response({'error': 'Invalid Credentials'}, status=status.HTTP_400_BAD_REQUEST)
+        device_id = serializer.validated_data['device_id']
+
+        with transaction.atomic():
+            user = User.objects.filter(username=username).first()
+
+            if user and user.check_password(password):
+                user_detail = UserDetail.objects.filter(extUser=user).first()
+
+                if user_detail and device_id in user_detail.device_id:
+                    token = str(uuid.uuid4())
+                    request.session[token] = user.id
+                    return Response({
+                        'Staus': 'ok',
+                        'token': token,
+                        'Message': 'Login succesfull'
+                    })
+                else:
+                    return Response({'Staus': 'Invalid','Message': 'Device ID mismatch'}, status=status.HTTP_400_BAD_REQUEST)
+
+            return Response({'Staus': 'Invalid','Message': 'Invalid Credentials'}, status=status.HTTP_400_BAD_REQUEST)
