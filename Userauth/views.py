@@ -26,6 +26,7 @@ from pushnotification.models import NotificationAuth
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import User  
 
+from django.db import transaction
 
 from django.contrib.auth.hashers import check_password
 from rest_framework import viewsets, status
@@ -925,8 +926,9 @@ class ChangePasswordView(APIView):
         
         return Response({"message": "Password updated successfully"}, status=status.HTTP_200_OK)
 
-from django.db import transaction
-import uuid
+                                #user_Login_view#
+
+from django.contrib.sessions.backends.db import SessionStore
 
 class LoginView(APIView):
     def post(self, request, *args, **kwargs):
@@ -937,25 +939,70 @@ class LoginView(APIView):
         username = serializer.validated_data['username']
         password = serializer.validated_data['password']
         device_id = serializer.validated_data['device_id']
-        
+
         if app_token != settings.APP_TOKEN:  
-            return Response({'Status': 'Invalid', 'Message': 'App token mismatch'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'status': 'Invalid', 'message': 'App token mismatch'}, status=status.HTTP_400_BAD_REQUEST)
 
-        with transaction.atomic():
-            user = User.objects.filter(username=username).first()
+        user = User.objects.filter(username=username).first()
 
-            if user and user.check_password(password):
-                user_detail = UserDetail.objects.filter(extUser=user).first()
+        if user and user.check_password(password):
+            user_detail = UserDetail.objects.filter(extUser=user).first()
 
-                if user_detail and device_id in user_detail.device_id:
-                    token = str(uuid.uuid4())
-                    request.session[token] = user.id
+            if user_detail and device_id in user_detail.device_id:
+                existing_token = self.get_existing_token(request, user.id)
+                if existing_token:
                     return Response({
-                        'Staus': 'ok',
-                        'token': token,
-                        'Message': 'Login succesfull'
+                        'status': 'OK',
+                        'token': existing_token,
+                        'message': 'Login successful'
                     })
-                else:
-                    return Response({'Staus': 'Invalid','Message': 'Device ID mismatch'}, status=status.HTTP_400_BAD_REQUEST)
 
-            return Response({'Staus': 'Invalid','Message': 'Invalid Credentials'}, status=status.HTTP_400_BAD_REQUEST)
+                token = str(uuid.uuid4())
+                request.session[token] = user.id
+                return Response({
+                    'status': 'OK',
+                    'token': token,
+                    'message': 'Login successful'
+                })
+            else:
+                return Response({'status': 'Invalid','message': 'Device ID mismatch'}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({'status': 'Invalid','message': 'Invalid Credentials'}, status=status.HTTP_400_BAD_REQUEST)
+
+    def get_existing_token(self, request, user_id):
+        for key, value in request.session.items():
+            if value == user_id:
+                return key
+        return None
+
+class LogoutView(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = LogoutSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        app_token = serializer.validated_data.get('app_token')
+        device_id = serializer.validated_data.get('device_id')
+        header_token = request.headers.get('Authorization')
+
+        if app_token != settings.APP_TOKEN:
+            return Response({'status': 'Invalid', 'message': 'App token mismatch'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if header_token is None:
+            return Response({'status': 'Invalid', 'message': 'Authorization header missing'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user_id = self.get_user_id_from_token(request, header_token)
+
+        if not user_id:
+            return Response({'status': 'Invalid', 'message': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        user_detail = UserDetail.objects.filter(extUser_id=user_id, device_id=device_id).first()
+
+        if not user_detail:
+            return Response({'status': 'Invalid', 'message': 'Invalid device ID'}, status=status.HTTP_400_BAD_REQUEST)
+
+        request.session.clear()
+
+        return Response({'status': 'OK', 'message': 'Logout successful'})
+
+    def get_user_id_from_token(self, request, header_token):
+        return request.session.get(header_token)
