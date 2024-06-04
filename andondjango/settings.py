@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'devices',
     'events',
     'data',
+    'settings',
     'emailtracking',
     'rest_framework',
     'smsgateway',

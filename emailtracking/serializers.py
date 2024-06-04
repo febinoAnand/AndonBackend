@@ -14,6 +14,7 @@ class TicketSerializer(serializers.ModelSerializer):
         fields = ("__all__")
 
 class ParameterSerializer(serializers.ModelSerializer):
+    
     class Meta:
         model = Parameter
         fields = ("__all__")

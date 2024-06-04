@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models import JSONField
 from django.contrib.auth.models import Group
 import json
+import random
 # Create your models here.
 
 class Inbox(models.Model):
@@ -28,6 +29,7 @@ class Ticket(models.Model):
     def __str__(self):
         return self.ticketname
 
+
 class Parameter(models.Model):
     CHARACTER = 'character'
     NUMBER = 'number'
@@ -35,9 +37,12 @@ class Parameter(models.Model):
         (CHARACTER, 'Character'),
         (NUMBER, 'Number'),
     ]
+    
     alias = models.CharField(max_length=30, blank=False, null=False)
     field = models.CharField(max_length=30, unique=True, blank=False, null=False)
     datatype = models.CharField(max_length=15, blank=False, null=False, choices=DATATYPE_CHOICES)
+    color = models.CharField(max_length=7, blank=True, null=True)  
+    groups = models.ManyToManyField(Group, blank=True)  
 
     class Meta:
         verbose_name = "field"
@@ -45,6 +50,17 @@ class Parameter(models.Model):
 
     def __str__(self):
         return self.alias
+
+    def save(self, *args, **kwargs):
+        if not self.pk and not self.color:  
+            self.color = self._generate_random_color()
+        super().save(*args, **kwargs)
+
+    def _generate_random_color(self):
+        return "#{:06x}".format(random.randint(0, 0xFFFFFF))
+
+
+
     
 class ParameterFilter(models.Model):
     GREATER_THAN_OR_EQUAL = 'greater than or equal'
@@ -65,11 +81,18 @@ class ParameterFilter(models.Model):
         (IS_EXIST, 'Is Exist'),
     ]
 
+    LOGICAL_OPERATOR_CHOICES = [
+        ('AND', 'AND'),
+        ('OR', 'OR'),
+    ]
+
     operator = models.CharField(max_length=25, choices=OPERATOR_CHOICES)
     value = models.CharField(max_length=50)
+    logical_operator = models.CharField(max_length=3, choices=LOGICAL_OPERATOR_CHOICES, default='AND')
 
     def __str__(self):
-        return self.operator+"-"+self.value
+        return f"{self.operator}-{self.value} ({self.logical_operator})"
+
 
 class Trigger(models.Model):
     trigger_name = models.CharField(max_length=255, blank=False, null=False)

@@ -26,6 +26,7 @@ admin.site.register(Ticket, TicketAdmin)
 
 class ParameterAdmin(admin.ModelAdmin):
     list_display = ["alias","field","datatype"]
+    
 
 admin.site.register(Parameter, ParameterAdmin)
 
@@ -99,3 +100,8 @@ class ReportAdmin(admin.ModelAdmin):
             return 'NA'
 
 admin.site.register(Report,ReportAdmin)
+
+
+    
+
+
