@@ -13,8 +13,7 @@ class TicketSerializer(serializers.ModelSerializer):
         model = Ticket
         fields = ("__all__")
 
-from rest_framework import serializers
-from .models import Parameter, Group
+
 
 class GroupSerializer(serializers.ModelSerializer):
     class Meta:
