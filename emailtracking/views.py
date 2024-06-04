@@ -14,9 +14,10 @@ def readMailView(request):
     inboxReadTask.delay("Read from views")
     return HttpResponse("Task Called..")
 
-class InboxViewSet(viewsets.ReadOnlyModelViewSet):
+class InboxViewSet(viewsets.ModelViewSet):
     queryset = Inbox.objects.all()
     serializer_class = InboxSerializer
+
 
 class ParameterViewSet(viewsets.ModelViewSet):
     queryset = Parameter.objects.all()
