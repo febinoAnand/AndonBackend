@@ -13,11 +13,21 @@ class TicketSerializer(serializers.ModelSerializer):
         model = Ticket
         fields = ("__all__")
 
+
+
+class GroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Group
+        fields = "__all__"
+
 class ParameterSerializer(serializers.ModelSerializer):
-    
+    group_details = GroupSerializer(source='groups', many=True, read_only=True)
+
     class Meta:
         model = Parameter
-        fields = ("__all__")
+        fields = "__all__"
+
+
 
 class ParameterFilterSerializer(serializers.ModelSerializer):
     class Meta:
