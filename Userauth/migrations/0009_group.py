@@ -8,7 +8,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('auth', '0013_alter_user_email'),
+        # ('auth', '0013_alter_user_email'),
         ('Userauth', '0008_unauthuser_otp_wrong_count'),
     ]
 

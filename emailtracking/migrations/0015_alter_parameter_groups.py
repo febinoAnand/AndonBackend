@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('auth', '0013_alter_user_email'),
+        # ('auth', '0013_alter_user_email'),
         ('emailtracking', '0014_parameter_color_parameter_groups'),
     ]
 
