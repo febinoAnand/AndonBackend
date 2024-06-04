@@ -81,11 +81,18 @@ class ParameterFilter(models.Model):
         (IS_EXIST, 'Is Exist'),
     ]
 
+    LOGICAL_OPERATOR_CHOICES = [
+        ('AND', 'AND'),
+        ('OR', 'OR'),
+    ]
+
     operator = models.CharField(max_length=25, choices=OPERATOR_CHOICES)
     value = models.CharField(max_length=50)
-    
+    logical_operator = models.CharField(max_length=3, choices=LOGICAL_OPERATOR_CHOICES, default='AND')
+
     def __str__(self):
-        return self.operator+"-"+self.value
+        return f"{self.operator}-{self.value} ({self.logical_operator})"
+
 
 class Trigger(models.Model):
     trigger_name = models.CharField(max_length=255, blank=False, null=False)
