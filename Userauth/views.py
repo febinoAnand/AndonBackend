@@ -916,6 +916,7 @@ class LoginView(APIView):
         username = serializer.validated_data['username']
         password = serializer.validated_data['password']
         device_id = serializer.validated_data['device_id']
+        notification_id = serializer.validated_data['notification_id']
 
         if app_token != settings.APP_TOKEN:  
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -928,6 +929,14 @@ class LoginView(APIView):
             if user_detail and device_id in user_detail.device_id:
                 existing_token = self.get_existing_token(request, user.id)
                 if existing_token:
+                  
+                    notification_auth = NotificationAuth.objects.filter(user_to_auth=user).first()
+                    if notification_auth:
+                        notification_auth.noti_token = notification_id
+                        notification_auth.save()
+                    else:
+                        NotificationAuth.objects.create(user_to_auth=user, noti_token=notification_id)
+                    
                     return Response({
                         'status': 'OK',
                         'token': existing_token,
@@ -936,6 +945,14 @@ class LoginView(APIView):
 
                 token = str(uuid.uuid4())
                 request.session[token] = user.id
+              
+                notification_auth = NotificationAuth.objects.filter(user_to_auth=user).first()
+                if notification_auth:
+                    notification_auth.noti_token = notification_id
+                    notification_auth.save()
+                else:
+                    NotificationAuth.objects.create(user_to_auth=user, noti_token=notification_id)
+                    
                 return Response({
                     'status': 'OK',
                     'token': token,
