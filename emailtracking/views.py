@@ -5,8 +5,8 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .tasks import inboxReadTask
 from rest_framework import viewsets
-from .models import Inbox , Parameter, Setting, Trigger, ParameterFilter, Ticket
-from .serializers import InboxSerializer, ParameterSerializer, SettingSerializer, TriggerSerializer, ParameterFilterSerializer, TicketSerializer
+from .models import *
+from .serializers import *
 
 # Create your views here.
 
@@ -17,6 +17,7 @@ def readMailView(request):
 class InboxViewSet(viewsets.ModelViewSet):
     queryset = Inbox.objects.all()
     serializer_class = InboxSerializer
+    http_method_names = ['get','delete']
 
 
 class ParameterViewSet(viewsets.ModelViewSet):
@@ -27,6 +28,7 @@ class ParameterViewSet(viewsets.ModelViewSet):
 class SettingViewSet(viewsets.ModelViewSet):
     queryset = Setting.objects.all()
     serializer_class = SettingSerializer
+    http_method_names = ["get","post","put"]
 
 class TriggerViewSet(viewsets.ModelViewSet):
     queryset = Trigger.objects.all()
@@ -39,3 +41,9 @@ class ParameterFilterViewSet(viewsets.ModelViewSet):
 class TicketViewSet(viewsets.ModelViewSet):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
+    http_method_names=["get"]
+
+class ReportViewSet(viewsets.ModelViewSet):
+    queryset = Report.objects.all()
+    serializer_class = ReportSerializer
+    http_method_names = ["get"]

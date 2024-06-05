@@ -3,7 +3,7 @@ from .models import *
 
 # Register your models here.
 class InboxAdmin(admin.ModelAdmin):
-    list_display = ["date","time","from_email","to_email","subject","show_message","message_id"]
+    list_display = ["date","time","from_email","to_email","subject","show_message"]
     # def has_add_permission(self, request):
     #     return False
 
@@ -26,12 +26,13 @@ admin.site.register(Ticket, TicketAdmin)
 
 class ParameterAdmin(admin.ModelAdmin):
     list_display = ["alias","field","datatype"]
+    fields = ["alias","field","datatype","groups"]
     
 
 admin.site.register(Parameter, ParameterAdmin)
 
 class ParameterFilterAdmin(admin.ModelAdmin):
-    list_display = ["operator","value"]
+    list_display = ["logical_operator","operator","value","trigger_fields"]
 
 admin.site.register(ParameterFilter,ParameterFilterAdmin)
 
@@ -47,8 +48,8 @@ admin.site.register(Trigger, TriggerAdmin)
 
 class SettingAdmin(admin.ModelAdmin):
 
-    list_display = ["host","port","username","password","checkstatus"]
-    fields = ["host","port","username","password","checkstatus"]
+    list_display = ["host","port","username","password","checkstatus","checkinterval"]
+    fields = ["host","port","username","password","checkstatus","checkinterval"]
 
     def has_add_permission(self, request):
         if len(Setting.objects.all()) > 0:
@@ -58,10 +59,10 @@ class SettingAdmin(admin.ModelAdmin):
 admin.site.register(Setting, SettingAdmin)
 
 class ReportAdmin(admin.ModelAdmin):
-    list_display = ('date','time','field_Word','actual_value',"trigger_filter",'sent_group','trigger_message')
+    list_display = ('date','time','field_Word','actual_value','sent_group','trigger_message')
 
-    def has_add_permission(self, request):
-        return False
+    # def has_add_permission(self, request):
+    #     return False
 
     def has_change_permission(self, request, obj=None):
         return False
@@ -78,14 +79,14 @@ class ReportAdmin(admin.ModelAdmin):
         else:
             return 'NA'
 
-    def trigger_filter(self, obj):
-        if obj.active_trigger:
-            list_filter = [item for item in obj.active_trigger.parameter_filter_list.all()]
+    # def trigger_filter(self, obj):
+    #     if obj.active_trigger:
+    #         list_filter = [item for item in obj.active_trigger.parameter_filter_list.all()]
             # for item in obj.active_trigger.parameter_filter_list.all():
-
-            return list_filter
-        else:
-            return 'NA'
+# 
+            # return list_filter
+        # else:
+        #     return 'NA'
 
     def sent_group(self, obj):
         if obj.active_trigger:
