@@ -32,7 +32,7 @@ class ParameterAdmin(admin.ModelAdmin):
 admin.site.register(Parameter, ParameterAdmin)
 
 class ParameterFilterAdmin(admin.ModelAdmin):
-    list_display = ["logical_operator","operator","value","trigger_fields"]
+    list_display = ["logical_operator","operator","value"]
 
 admin.site.register(ParameterFilter,ParameterFilterAdmin)
 

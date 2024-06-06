@@ -81,15 +81,15 @@ class TriggerSerializer(serializers.ModelSerializer):
     # trigger_field = ParameterSerializer()
     trigger_field_details = ShortParameterSerializer(source="trigger_field",read_only=True)
     trigger_field = serializers.SlugRelatedField(slug_field='alias', queryset=Parameter.objects.all())
-    # parameter_filter_list = ParameterFilterSerializer(many=True)
-    parameter_filter_list = serializers.SerializerMethodField()
+    # parameter_filter_list = serializers.SlugRelatedField(slug_field='name', queryset=Group.objects.all())
+    # parameter_filter_list = serializers.SerializerMethodField()
 
 
 
-    def get_parameter_filter_list(self,obj):
-        param = ParameterFilter.objects.filter(trigger_fields = obj)
-        paramSer = ShortParameterFilterSerializer(param,many=True)
-        return paramSer.data
+    # def get_parameter_filter_list(self,obj):
+    #     param = ParameterFilter.objects.filter(trigger_fields = obj)
+    #     paramSer = ShortParameterFilterSerializer(param,many=True)
+    #     return paramSer.data
     
     
     class Meta:

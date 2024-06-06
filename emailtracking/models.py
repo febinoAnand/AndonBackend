@@ -58,22 +58,6 @@ class Parameter(models.Model):
 
     def _generate_random_color(self):
         return "#{:06x}".format(random.randint(0, 0xFFFFFF))
-
-class Trigger(models.Model):
-    trigger_name = models.CharField(max_length=255, blank=False, null=False)
-    trigger_field = models.ForeignKey(Parameter, on_delete=models.CASCADE, blank=False, null=False,related_name="trigger_field")
-    # parameter_filter_list = models.ManyToManyField(ParameterFilter, blank=False, related_name="parameter_filter_lists")
-    users_to_send = models.ManyToManyField(User, blank=False, related_name="trigger_user")
-    group_to_send = models.ForeignKey(Group, on_delete=models.CASCADE, blank=False, related_name="trigger_group")
-    notification_message = models.TextField(blank=True, null=True)
-    trigger_switch = models.BooleanField(default=False)
-    send_sms = models.BooleanField(default=False)
-    send_notification = models.BooleanField(default=False)
-
-
-    def __str__(self):
-        return self.trigger_name
-
     
 class ParameterFilter(models.Model):
     GREATER_THAN_OR_EQUAL = 'greater than or equal'
@@ -102,11 +86,29 @@ class ParameterFilter(models.Model):
     operator = models.CharField(max_length=25, choices=OPERATOR_CHOICES)
     value = models.CharField(max_length=50)
     logical_operator = models.CharField(max_length=3, choices=LOGICAL_OPERATOR_CHOICES, default='AND')
-    trigger_fields = models.ForeignKey(Trigger,related_name="triggering_fields", on_delete=models.CASCADE,null=False,blank=False)
+    # trigger_fields = models.ForeignKey(Trigger,related_name="triggering_fields", on_delete=models.CASCADE,null=False,blank=False)
 
     def __str__(self):
         return f"{self.operator}-{self.value} ({self.logical_operator})"
 
+
+
+class Trigger(models.Model):
+    trigger_name = models.CharField(max_length=255, blank=False, null=False)
+    trigger_field = models.ForeignKey(Parameter, on_delete=models.CASCADE, blank=False, null=False,related_name="trigger_field")
+    parameter_filter_list = models.ManyToManyField(ParameterFilter, blank=False, related_name="parameter_filter_lists")
+    users_to_send = models.ManyToManyField(User, blank=False, related_name="trigger_user")
+    group_to_send = models.ForeignKey(Group, on_delete=models.CASCADE, blank=False, related_name="trigger_group")
+    notification_message = models.TextField(blank=True, null=True)
+    trigger_switch = models.BooleanField(default=False)
+    send_sms = models.BooleanField(default=False)
+    send_notification = models.BooleanField(default=False)
+
+
+    def __str__(self):
+        return self.trigger_name
+
+    
 
 
 
