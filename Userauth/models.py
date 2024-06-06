@@ -8,7 +8,7 @@ User._meta.get_field("email").blank = False
 class UnauthUser(models.Model):
     mobile_no = models.CharField(max_length=15, null=False, blank=False)
     createdatetime = models.DateTimeField(auto_now_add=True)
-    otp = models.DecimalField(max_digits=5, decimal_places=0, null=True, blank=True)
+    otp = models.CharField(max_length=5, null=True, blank=True)
     emailaddress = models.EmailField(null=False, blank=False)
     session_id = models.UUIDField(unique=True, null=False, blank=False)
     device_id = models.CharField(max_length=50, null=False, blank=False)

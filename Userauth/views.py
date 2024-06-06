@@ -651,12 +651,15 @@ class UserRegisterView(views.APIView):
             responseData["message"] = "Device Mismatch. Try again"
             return  JsonResponse(responseData)
         
-        if len(UserDetail.objects.filter(device_id = jsondata["deviceID"])):
+        extDeviceUser = UserDetail.objects.filter(device_id = jsondata["deviceID"])
+        if len(extDeviceUser):
+            extDeviceUser = extDeviceUser[0]
+            extDeviceUser.extUser.delete()
             print("device already used by user")
-            unAuthUser.delete()
-            responseData["status"] = "INVALID"
-            responseData["message"] = "Device Mismatch. Try again"
-            return  JsonResponse(responseData)
+            # unAuthUser.delete()
+            # responseData["status"] = "INVALID"
+            # responseData["message"] = "Device Mismatch. Try again"
+            # return  JsonResponse(responseData)
         
 
         # Verify the verification token 
@@ -679,7 +682,7 @@ class UserRegisterView(views.APIView):
             userDetails.mobile_no = unAuthUser.mobile_no
             userDetails.designation = jsondata["designation"]
             userDetails.device_id = jsondata["deviceID"]
-            userDetails.extUser.password = jsondata["password"]
+            userDetails.extUser.set_password(jsondata["password"])  
             userDetails.extUser.first_name = jsondata["name"]
             userDetails.extUser.is_active = False
             # userDetails.extUser.user_name.noti_token = jsondata["notificationID"]
@@ -909,17 +912,50 @@ class GroupViewSet(viewsets.ModelViewSet):
 
 class LoginView(APIView):
     def post(self, request, *args, **kwargs):
-        serializer = LoginSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
 
-        app_token = serializer.validated_data['app_token']
+        ########################### POST FLOW ##################################
+
+        #check valid Json data in request 
+        jsondata = {}
+        try:
+            jsondata = json.loads(request.body)
+            print(jsondata)
+        except Exception as e:
+            print (e)                       #TODO : save the exception in Log File
+            return HttpResponseNotFound()
+        
+        
+        #check app_token valid with Settings...
+        if "app_token" not in jsondata:
+            return HttpResponseNotFound()
+        
+        if jsondata["app_token"] != settings.APP_TOKEN:
+            return HttpResponseNotFound()
+
+
+        #Validate the Post Data....
+        serializer = LoginSerializer(data=jsondata)
+        if not serializer.is_valid():
+            return HttpResponseBadRequest()
+
+
+        #getting currentDate and Time
+        currentDate = datetime.now().strftime("%Y-%m-%d")
+        currentTime = datetime.now().strftime("%H:%M:%S")
+        currentDateTime = datetime.now()
+        # print (currentDate,currentTime)
+
+        ########################### POST FLOW  END HERE ##################################
+        # serializer = LoginSerializer(data=request.data)
+        # serializer.is_valid(raise_exception=True)
+
         username = serializer.validated_data['username']
         password = serializer.validated_data['password']
         device_id = serializer.validated_data['device_id']
         notification_id = serializer.validated_data['notification_id']
 
-        if app_token != settings.APP_TOKEN:  
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+        # if app_token != settings.APP_TOKEN:  
+        #     return Response(status=status.HTTP_400_BAD_REQUEST)
 
         user = User.objects.filter(username=username).first()
 
@@ -959,7 +995,7 @@ class LoginView(APIView):
                     'message': 'Login successful'
                 })
             else:
-                return Response({'status': 'INVALID','message': 'Device ID mismatch'}, status=status.HTTP_200_OK)
+                return Response({'status': 'DEVICE_MISMATCH','message': 'Account already used in another device. Redo Registration'}, status=status.HTTP_200_OK)
 
         return Response({'status': 'INVALID','message': 'Invalid Credentials'}, status=status.HTTP_200_OK)
 

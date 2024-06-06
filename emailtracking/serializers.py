@@ -78,10 +78,13 @@ class ShortParameterFilterSerializer(serializers.ModelSerializer):
 
 class TriggerSerializer(serializers.ModelSerializer):
     group_to_send = serializers.SlugRelatedField(slug_field='name', queryset=Group.objects.all())
-    trigger_field = ShortParameterSerializer()
-    # trigger_field = serializers.SlugRelatedField(slug_field='alias', queryset=Parameter.objects.all())
+    # trigger_field = ParameterSerializer()
+    trigger_field_details = ShortParameterSerializer(source="trigger_field",read_only=True)
+    trigger_field = serializers.SlugRelatedField(slug_field='alias', queryset=Parameter.objects.all())
     # parameter_filter_list = ParameterFilterSerializer(many=True)
     parameter_filter_list = serializers.SerializerMethodField()
+
+
 
     def get_parameter_filter_list(self,obj):
         param = ParameterFilter.objects.filter(trigger_fields = obj)
