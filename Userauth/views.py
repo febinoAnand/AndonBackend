@@ -962,6 +962,9 @@ class LoginView(APIView):
         if user and user.check_password(password):
             user_detail = UserDetail.objects.filter(extUser=user).first()
 
+            if not user.is_active:
+                return Response({'status': 'INACTIVE','message': 'Your Acount is in Inactive'}, status=status.HTTP_200_OK)
+
             if user_detail and device_id in user_detail.device_id:
                 existing_token = self.get_existing_token(request, user.id)
                 if existing_token:
