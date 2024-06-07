@@ -106,16 +106,19 @@ class SettingSerializer(serializers.ModelSerializer):
         fields = ("__all__")
 
 class ShortTriggerSerializer(serializers.ModelSerializer):
-    rules = serializers.SerializerMethodField()
+    # rules = serializers.SerializerMethodField()
+    
+    # def get_rules(self,obj):
+    #     param = ParameterFilter.objects.filter(trigger_fields = obj)
+    #     paramSer = ShortParameterFilterSerializer(param,many=True)
+    #     return paramSer.data
 
-    def get_rules(self,obj):
-        param = ParameterFilter.objects.filter(trigger_fields = obj)
-        paramSer = ShortParameterFilterSerializer(param,many=True)
-        return paramSer.data
+    users_to_send = UserSerializer(many=True)
+    parameter_filter_list = ShortParameterFilterSerializer(many=True)
     
     class Meta:
         model = Trigger
-        fields = ("trigger_name","notification_message","users_to_send","rules")
+        fields = ("trigger_name","notification_message","users_to_send","parameter_filter_list")
 
 class ShortTicketSerializer(serializers.ModelSerializer):
     class Meta:
