@@ -9,6 +9,12 @@ import re
 from datetime import datetime
 from email.utils import parsedate_to_datetime
 from django.contrib.auth.models import User
+from Userauth.models import UserDetail
+from pushnotification.integrations import sendNotification, sendNotificationWithUser
+
+from smsgateway.integrations import *
+
+
 
 # Format the message for SMS
 def smsFormat(info):
@@ -190,6 +196,7 @@ def check_triggers(selected_field, extractedTicket):
         print(f"Field: {key}, Value: {value}, Number of triggers: {len(triggerList)}")
         for trigger in triggerList:
             parameterFilterList = trigger.parameter_filter_list.all()
+            print("parameterFilterList------>",parameterFilterList)
             isTriggerSatisfy = True
             filterString = []
             for filter in parameterFilterList:
@@ -221,19 +228,30 @@ def check_triggers(selected_field, extractedTicket):
                     "value": value
                 }
                 print("Trigger report data:", triggerReportData)
+
                 if trigger.send_sms:
-                    for user in User.objects.filter(groups=trigger.group_to_send):
-                        sms_to_send.append({
-                            "mobileNo": user.last_name,  # TODO: change this to mobile no in user auth model
-                            "message": smsFormat(triggerReportData)
-                        })
+                    for user in trigger.users_to_send.all():
+                        try:
+                            user_detail = UserDetail.objects.get(extUser=user)
+                            sms_to_send.append({
+                                "mobileNo": user_detail.mobile_no,
+                                "message": smsFormat(triggerReportData)
+                            })
+                        except UserDetail.DoesNotExist:
+                            print(f"UserDetail does not exist for user: {user}")
+
                 if trigger.send_notification:
-                    for user in User.objects.filter(groups=trigger.group_to_send):
-                        notification_to_send.append({
-                            "noti-token": user.last_name,  # TODO: change this to noti-token in notification app
-                            "title": triggerReportData["ticket"],
-                            "message": notificationFormat(triggerReportData)
-                        })
+                    for user in trigger.users_to_send.all():
+                        try:
+                            user_detail = UserDetail.objects.get(extUser=user)
+                            notification_to_send.append({
+                                "noti-token": user_detail.device_id,
+                                "title": triggerReportData["ticket"],
+                                "message": notificationFormat(triggerReportData)
+                            })
+                        except UserDetail.DoesNotExist:
+                            print(f"UserDetail does not exist for user: {user}")
+
     return sms_to_send, notification_to_send
 
 # Main task function
@@ -278,7 +296,11 @@ def inboxReadTask(args):
             if extractedTicket:
                 sms_to_send, notification_to_send = check_triggers(selected_field, extractedTicket)
                 print("smstosend->", sms_to_send)
+                for sendto in sms_to_send:
+                    sendSMS(sendto["mobileNo"], sendto["message"])
                 print("notification->", notification_to_send)
+                for notification in notification_to_send:
+                    sendNotification(notification["noti-token"], notification["title"], notification["message"])
         except Exception as e:
             print("Exception occurred while processing email:", e)
             traceback.print_exc()
