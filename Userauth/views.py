@@ -959,13 +959,16 @@ class LoginView(APIView):
 
         user = User.objects.filter(username=username).first()
 
-        if user and user.check_password(password):
-            user_detail = UserDetail.objects.filter(extUser=user).first()
-
-            if not user.is_active:
+        if user and not user.is_active:
+                # user_detail = UserDetail.objects.filter(extUser=user).first()
                 return Response({'status': 'INACTIVE','message': 'Your Acount is in Inactive'}, status=status.HTTP_200_OK)
+        
+        user_detail = UserDetail.objects.filter(extUser=user).first()
+        if user_detail and device_id in user_detail.device_id:
+            if user and user.check_password(password):
+                
 
-            if user_detail and device_id in user_detail.device_id:
+            
                 existing_token = self.get_existing_token(request, user.id)
                 if existing_token:
                   
@@ -997,10 +1000,11 @@ class LoginView(APIView):
                     'token': token,
                     'message': 'Login successful'
                 })
-            else:
-                return Response({'status': 'DEVICE_MISMATCH','message': 'Account already used in another device. Redo Registration'}, status=status.HTTP_200_OK)
+            return Response({'status': 'INVALID','message': 'Invalid Credentials'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'status': 'DEVICE_MISMATCH','message': 'Account already used in another device. Redo Registration'}, status=status.HTTP_200_OK)
 
-        return Response({'status': 'INVALID','message': 'Invalid Credentials'}, status=status.HTTP_200_OK)
+        
 
     def get_existing_token(self, request, user_id):
         for key, value in request.session.items():
