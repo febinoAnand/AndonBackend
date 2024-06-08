@@ -11,7 +11,7 @@ from email.utils import parsedate_to_datetime
 from django.contrib.auth.models import User
 from Userauth.models import UserDetail
 from pushnotification.integrations import sendNotification, sendNotificationWithUser
-
+import operator
 from smsgateway.integrations import *
 
 
@@ -62,21 +62,51 @@ def checkTriggerPassString(filter, value):
     return False
 
 # Check if a numerical value passes the filter criteria
-def checkTriggerPassNumber(filter, value):
-    print("Checking number filter:", filter.operator, filter.value, "against value:", value)
-    if filter.operator == "greater than":
-        return value > filter.value
-    elif filter.operator == "greater than or equal":
-        return value >= filter.value
-    elif filter.operator == "less than":
-        return value < filter.value
-    elif filter.operator == "less than or equal":
-        return value <= filter.value
-    elif filter.operator == "equals":
-        return value == filter.value
-    elif filter.operator == "not equals":
-        return value != filter.value
-    return False
+def check_conditions(conditions, input_number):
+    ops = {
+        '>=': operator.ge,
+        '<': operator.lt,
+        '==': operator.eq,
+        '!=': operator.ne,
+        '<=': operator.le,
+        '>': operator.gt,
+        '<': operator.lt,
+        'exists': lambda x, y: x == y
+    }
+
+    final_result = None
+
+    for i, cond in enumerate(conditions):
+        op = ops[cond['operator']]
+        value = float(cond['fixed_value'])
+
+        current_result = op(input_number, value)
+
+        if i == 0:
+            final_result = current_result
+        else:
+            logical_op = cond.get('logical_operator', 'and') 
+            if logical_op == 'and':
+                final_result = final_result and current_result
+            elif logical_op == 'or':
+                final_result = final_result or current_result
+
+        if not final_result:
+            break
+
+    return final_result
+
+def map_operator(operator_text):
+    operator_mapping = {
+        'greater than': '>',
+        'less than': '<',
+        'greater than or equal to': '>=',
+        'less than or equal to': '<=',
+        'equal to': '==',
+        'not equal to': '!='
+    }
+    return operator_mapping.get(operator_text, operator_text)
+
 
 # Check if a value is a number
 def is_number(num):
@@ -196,20 +226,31 @@ def check_triggers(selected_field, extractedTicket):
         print(f"Field: {key}, Value: {value}, Number of triggers: {len(triggerList)}")
         for trigger in triggerList:
             parameterFilterList = trigger.parameter_filter_list.all()
-            print("parameterFilterList------>",parameterFilterList)
+            print("parameterFilterList------>", parameterFilterList)
             isTriggerSatisfy = True
             filterString = []
+            conditions = []
             for filter in parameterFilterList:
-                filterString.append(filter.operator + " - " + filter.value)
-                if trigger.trigger_field.datatype == "number" and is_number(value):
-                    filter.value = int(filter.value)
-                    isTriggerPass = checkTriggerPassNumber(filter, value)
-                elif trigger.trigger_field.datatype == "character" and not is_number(value):
+                filterString.append(filter.operator + " - " + str(filter.value))
+                condition = {
+                    'operator': map_operator(filter.operator),
+                    'fixed_value': filter.value,
+                    'logical_operator': filter.logical_operator
+                }
+                conditions.append(condition)
+
+            if trigger.trigger_field.datatype == "number" and is_number(value):
+                isTriggerSatisfy = check_conditions(conditions, float(value))
+
+            elif trigger.trigger_field.datatype == "character" and not is_number(value):
+                for filter in parameterFilterList:
                     isTriggerPass = checkTriggerPassString(filter, value)
-                else:
-                    isTriggerPass = False
-                isTriggerSatisfy = isTriggerSatisfy and isTriggerPass
+                    isTriggerSatisfy = isTriggerSatisfy and isTriggerPass
+            else:
+                isTriggerSatisfy = False
+
             print(f"Trigger: {trigger}, Is satisfied: {isTriggerSatisfy}")
+
             if isTriggerSatisfy:
                 Report.objects.create(
                     date=datetime.now().strftime("%Y-%m-%d"),
@@ -300,7 +341,8 @@ def inboxReadTask(args):
                     sendSMS(sendto["mobileNo"], sendto["message"])
                 print("notification->", notification_to_send)
                 for notification in notification_to_send:
-                    sendNotification(notification["noti-token"], notification["title"], notification["message"])
+                    msg=sendNotification(notification["noti-token"], notification["title"], notification["message"])
+                    print(msg)
         except Exception as e:
             print("Exception occurred while processing email:", e)
             traceback.print_exc()
