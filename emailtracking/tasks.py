@@ -311,19 +311,26 @@ def inboxReadTask(args):
     port = currentSetting.port
 
     mail, data = connect_to_mail_server(imap_host, imap_user, password, port)
+    if not mail:
+        return "Failed to connect to mail server"
+
+    # Get email IDs related to the current setting
+    allowed_email_ids = [email.email for email in currentSetting.email_ids.all()]
 
     # Retrieve and sort email ids by received time
     email_data = []
     for num in data[0].split():
         try:
             status, fetched_data = mail.fetch(num, '(RFC822)')
-            email_msg = fetched_data[0][1]
-            email_msg = email.message_from_bytes(email_msg, policy=policy.SMTP)
-            email_date = parsedate_to_datetime(email_msg['Date']) if parsedate_to_datetime(email_msg['Date']) else None
-            email_data.append((num, email_date))
+            email_msg = email.message_from_bytes(fetched_data[0][1])
+            email_from = email_msg.get("From")
+            if any(allowed_email in email_from for allowed_email in allowed_email_ids):
+                email_date = parsedate_to_datetime(email_msg['Date']) if parsedate_to_datetime(email_msg['Date']) else None
+                email_data.append((num, email_date))
         except Exception as e:
             print("Exception occurred while fetching email:", e)
             traceback.print_exc()
+
 
     # Sort emails by date (oldest first)
     email_data.sort(key=lambda x: x[1])

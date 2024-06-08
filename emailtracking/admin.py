@@ -106,3 +106,7 @@ admin.site.register(Report,ReportAdmin)
     
 
 
+@admin.register(EmailID)
+class EmailIDAdmin(admin.ModelAdmin):
+    list_display = ['email', 'setting']
+    search_fields = ['email']

@@ -135,3 +135,10 @@ class Setting(models.Model):
 
     def __str__(self):
         return "Setting"
+
+class EmailID(models.Model):
+    email = models.EmailField(unique=True)
+    setting = models.ForeignKey(Setting, on_delete=models.CASCADE, related_name='email_ids')
+
+    def __str__(self):
+        return self.email
