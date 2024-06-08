@@ -78,7 +78,7 @@ class ShortParameterFilterSerializer(serializers.ModelSerializer):
         fields = ("id","operator","value","logical_operator")
 
 class TriggerSerializer(serializers.ModelSerializer):
-    group_to_send = serializers.SlugRelatedField(slug_field='name', queryset=Group.objects.all())
+    # group_to_send = serializers.SlugRelatedField(slug_field='name', queryset=Group.objects.all())
     # trigger_field = ParameterSerializer()
     
     trigger_field_details = ShortParameterSerializer(source="trigger_field",read_only=True)

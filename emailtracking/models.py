@@ -98,7 +98,7 @@ class Trigger(models.Model):
     trigger_field = models.ForeignKey(Parameter, on_delete=models.CASCADE, blank=False, null=False,related_name="trigger_field")
     parameter_filter_list = models.ManyToManyField(ParameterFilter, blank=False, related_name="parameter_filter_lists")
     users_to_send = models.ManyToManyField(User, blank=False, related_name="trigger_user")
-    group_to_send = models.ForeignKey(Group, on_delete=models.CASCADE, blank=True,null=True, related_name="trigger_group")
+    group_to_send = models.ForeignKey(Group, on_delete=models.CASCADE, blank=True,null=True, default=None,related_name="trigger_group")
     notification_message = models.TextField(blank=True, null=True)
     trigger_switch = models.BooleanField(default=False)
     send_sms = models.BooleanField(default=False)
