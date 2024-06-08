@@ -8,10 +8,11 @@ class InboxSerializer(serializers.ModelSerializer):
         fields = ("__all__")
 
 class TicketSerializer(serializers.ModelSerializer):
-    inboxMessage = serializers.SlugRelatedField(slug_field='message', queryset=Inbox.objects.all())
+    inboxMessage = serializers.PrimaryKeyRelatedField(queryset=Inbox.objects.all())
+    
     class Meta:
         model = Ticket
-        fields = ("__all__")
+        fields = "__all__"
 
 
 

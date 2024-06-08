@@ -117,7 +117,8 @@ class Report(models.Model):
     time = models.TimeField(blank=True, null=True)
     active_trigger = models.ForeignKey(Trigger,null=False,blank=False,on_delete=models.CASCADE, related_name="report_trigger")
     actual_value = models.CharField(max_length=50,null=True,blank=True)
-    ticket = models.ForeignKey(Ticket,null=True,blank=True,on_delete=models.DO_NOTHING)
+    ticket = models.ForeignKey(Ticket, null=True, blank=True, on_delete=models.CASCADE)
+
 
 
 class Setting(models.Model):
