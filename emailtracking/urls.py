@@ -10,7 +10,7 @@ router.register('trigger',TriggerViewSet, basename="trigger")
 router.register('filter',ParameterFilterViewSet, basename="filter")
 router.register('ticket',TicketViewSet, basename="ticket")
 router.register('report',ReportViewSet, basename="report")
-
+router.register('email_ids', EmailIDViewSet)
 urlpatterns =[
     path('readmail/',readMailView),
     path('',include(router.urls)),

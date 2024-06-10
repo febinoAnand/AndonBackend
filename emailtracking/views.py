@@ -47,3 +47,7 @@ class ReportViewSet(viewsets.ModelViewSet):
     queryset = Report.objects.all()
     serializer_class = ReportSerializer
     http_method_names = ["get"]
+
+class EmailIDViewSet(viewsets.ModelViewSet):
+    queryset = EmailID.objects.all()
+    serializer_class = EmailIDSerializer
