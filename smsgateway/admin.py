@@ -18,7 +18,7 @@ class SMSNumberAdmin(admin.ModelAdmin):
 admin.site.register(SMSNumber, SMSNumberAdmin)
 
 class SettingAdmin(admin.ModelAdmin):
-    list_display = ["sid","auth_token"]
+    list_display = ["sid","auth_token", "is_active"]
     def has_add_permission(self, request) :
         if Setting.objects.count() > 0:
             return False

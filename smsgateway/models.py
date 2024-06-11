@@ -21,7 +21,8 @@ class Setting(models.Model):
     sid = models.CharField(max_length=100, default='default_sid')
     auth_token = models.CharField(max_length=100, default='default_auth_token')
     # number = models.CharField(max_length=20)
-
+    is_active = models.BooleanField(default=True)
+    
     def save(self, *args, **kwargs):
         if not self.pk and Setting.objects.exists():
             raise ValueError("Only one instance of Settings can be created")

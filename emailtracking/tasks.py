@@ -13,7 +13,7 @@ from Userauth.models import UserDetail
 from pushnotification.integrations import sendNotification, sendNotificationWithUser
 import operator
 from smsgateway.integrations import *
-
+from emailtracking.models import Setting
 
 
 # Format the message for SMS
@@ -298,61 +298,74 @@ def check_triggers(selected_field, extractedTicket):
 # Main task function
 @shared_task
 def inboxReadTask(args):
-    currentSetting = Setting.objects.all()[0]
-    if not currentSetting.checkstatus:
-        print("Check status is False. Exiting task.")
-        return
+    try:
+        currentSetting = Setting.objects.first()
+        if not currentSetting:
+            print("No current setting found. Exiting task.")
+            return
 
-    print("Reading Mail Box")
+        if not currentSetting.checkstatus:
+            print("Check status is False. Exiting task.")
+            return
 
-    imap_host = currentSetting.host
-    imap_user = currentSetting.username
-    password = currentSetting.password
-    port = currentSetting.port
+        print("Reading Mail Box")
 
-    mail, data = connect_to_mail_server(imap_host, imap_user, password, port)
-    if not mail:
-        return "Failed to connect to mail server"
+        imap_host = currentSetting.host
+        imap_user = currentSetting.username
+        password = currentSetting.password
+        port = currentSetting.port
 
-    # Get email IDs related to the current setting
-    allowed_email_ids = [email.email for email in currentSetting.email_ids.all()]
+        mail, data = connect_to_mail_server(imap_host, imap_user, password, port)
+        if not mail:
+            print("Failed to connect to mail server")
+            return
 
-    # Retrieve and sort email ids by received time
-    email_data = []
-    for num in data[0].split():
-        try:
-            status, fetched_data = mail.fetch(num, '(RFC822)')
-            email_msg = email.message_from_bytes(fetched_data[0][1])
-            email_from = email_msg.get("From")
-            if any(allowed_email in email_from for allowed_email in allowed_email_ids):
-                email_date = parsedate_to_datetime(email_msg['Date']) if parsedate_to_datetime(email_msg['Date']) else None
-                email_data.append((num, email_date))
-        except Exception as e:
-            print("Exception occurred while fetching email:", e)
-            traceback.print_exc()
+        # Get all allowed email IDs from the EmailID table
+        allowed_email_ids = EmailID.objects.filter(active=True).values_list('email', flat=True)
 
+        # Retrieve and sort email ids by received time
+        email_data = []
+        for num in data[0].split():
+            try:
+                status, fetched_data = mail.fetch(num, '(RFC822)')
+                if status != 'OK':
+                    continue
+                
+                email_msg = email.message_from_bytes(fetched_data[0][1])
+                email_from = email_msg.get("From")
 
-    # Sort emails by date (oldest first)
-    email_data.sort(key=lambda x: x[1])
+                if any(allowed_email in email_from for allowed_email in allowed_email_ids):
+                    email_date = parsedate_to_datetime(email_msg['Date'])
+                    email_data.append((num, email_date))
+            except Exception as e:
+                print("Exception occurred while fetching email:", e)
+                traceback.print_exc()
 
-    # Process each email in the sorted order
-    for email_id, email_date in email_data:
-        try:
-            email_msg, message_payload, email_date, email_time = process_email(mail, email_id)
-            inwardMail = save_inbox(email_msg, message_payload, email_date, email_time, email_id)
-            extractedTicket, selected_field = extract_and_save_fields(message_payload, email_date, email_time, inwardMail)
-            if extractedTicket:
-                sms_to_send, notification_to_send = check_triggers(selected_field, extractedTicket)
-                print("smstosend->", sms_to_send)
-                for sendto in sms_to_send:
-                    sendSMS(sendto["mobileNo"], sendto["message"])
-                print("notification->", notification_to_send)
-                for notification in notification_to_send:
-                    msg=sendNotification(notification["noti-token"], notification["title"], notification["message"])
-                    print(msg)
-        except Exception as e:
-            print("Exception occurred while processing email:", e)
-            traceback.print_exc()
+        # Sort emails by date (oldest first)
+        email_data.sort(key=lambda x: x[1])
 
-    return "Successfully done"
+        # Process each email in the sorted order
+        for email_id, email_date in email_data:
+            try:
+                email_msg, message_payload, email_date, email_time = process_email(mail, email_id)
+                inwardMail = save_inbox(email_msg, message_payload, email_date, email_time, email_id)
+                extractedTicket, selected_field = extract_and_save_fields(message_payload, email_date, email_time, inwardMail)
+                if extractedTicket:
+                    sms_to_send, notification_to_send = check_triggers(selected_field, extractedTicket)
+                    print("smstosend->", sms_to_send)
+                    for sendto in sms_to_send:
+                        sendSMS(sendto["mobileNo"], sendto["message"])
+                    print("notification->", notification_to_send)
+                    for notification in notification_to_send:
+                        msg = sendNotification(notification["noti-token"], notification["title"], notification["message"])
+                        print(msg)
+            except Exception as e:
+                print("Exception occurred while processing email:", e)
+                traceback.print_exc()
+
+        return "Successfully done"
+    except Exception as e:
+        print("Exception occurred in inboxReadTask:", e)
+        traceback.print_exc()
+        return "Task failed"
 
