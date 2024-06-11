@@ -19,7 +19,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
     usermod = UserSerializer(source="extUser",read_only=True)
     userdetail_id = serializers.IntegerField(source = "id")
     user_id = serializers.IntegerField(source = "extUser.id",read_only=True)
-    userActive = serializers.BooleanField(source="extUser.is_active",read_only=True)
+    userActive = serializers.BooleanField(source="extUser.is_active",read_only=False)
     
     class Meta:
         model = UserDetail
