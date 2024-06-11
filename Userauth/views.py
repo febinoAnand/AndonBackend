@@ -754,7 +754,7 @@ def generate_otp():
 def SendOTPSMS(number,OTPno):
     otpmessage = "Verification Code: {OTP}".format(OTP= OTPno)
     print ("OTP Sent",otpmessage)
-    # SMSgateway.sendSMS(number,otpmessage)
+    SMSgateway.sendSMS(number,otpmessage)
 
 def compareAndGetSeconds(fromDateTime,toDateTime):
     return (toDateTime - fromDateTime).total_seconds()
