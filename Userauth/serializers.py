@@ -16,15 +16,23 @@ class UserSerializer(serializers.ModelSerializer):
         # read_only_fields = ('username','email','first_name',"last_name")
 
 class UserDetailSerializer(serializers.ModelSerializer):
-    usermod = UserSerializer(source="extUser",read_only=True)
-    userdetail_id = serializers.IntegerField(source = "id")
-    user_id = serializers.IntegerField(source = "extUser.id",read_only=True)
-    userActive = serializers.BooleanField(source="extUser.is_active",read_only=False)
-    
+    usermod = UserSerializer(source="extUser", read_only=True)
+    userdetail_id = serializers.IntegerField(source="id")
+    user_id = serializers.IntegerField(source="extUser.id", read_only=True)
+    userActive = serializers.BooleanField(source="extUser.is_active")
+
     class Meta:
         model = UserDetail
-        fields = ('userdetail_id','user_id','usermod','designation','mobile_no','device_id','auth_state','expiry_time',"userActive")
-        # read_only_fields = ('userdetail_id','user_id','usermod','','mobile_no','device_id','expiry_time')
+        fields = ('userdetail_id', 'user_id', 'usermod', 'designation', 'mobile_no', 'device_id', 'auth_state', 'expiry_time', 'userActive')
+    
+    def update(self, instance, validated_data):
+        ext_user_data = validated_data.pop('extUser', None)
+        if ext_user_data and 'is_active' in ext_user_data:
+            instance.extUser.is_active = ext_user_data['is_active']
+            instance.extUser.save()
+
+       
+        return super().update(instance, validated_data)  
 
 
 class SettingSerializer(serializers.ModelSerializer):
