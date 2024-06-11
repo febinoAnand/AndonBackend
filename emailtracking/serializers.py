@@ -135,33 +135,9 @@ class ReportSerializer(serializers.ModelSerializer):
 class EmailIDSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmailID
-        fields = ['id', 'email', 'setting', 'active']
+        fields = ['id', 'email', 'active']
 
 class SettingSerializer(serializers.ModelSerializer):
-    email_ids = serializers.PrimaryKeyRelatedField(many=True, queryset=EmailID.objects.all())
-
     class Meta:
         model = Setting
         fields = "__all__"
-
-    def get_email_ids(self, obj):
-        selected_email_ids = obj.email_ids.values_list('id', flat=True)
-        email_ids_with_details = EmailID.objects.filter(id__in=selected_email_ids)
-
-     
-        email_ids_data = []
-        for email_id in email_ids_with_details:
-            email_id_data = {
-                'id': email_id.id,
-                'email': email_id.email,
-                'active': email_id.active,
-                
-            }
-            email_ids_data.append(email_id_data)
-
-        return email_ids_data
-
-    def to_representation(self, instance):
-        ret = super().to_representation(instance)
-        ret['email_ids'] = self.get_email_ids(instance)
-        return ret

@@ -139,7 +139,6 @@ class Setting(models.Model):
 
 class EmailID(models.Model):
     email = models.EmailField(unique=True)
-    setting = models.ForeignKey(Setting, null=False, blank=False, on_delete=models.CASCADE, related_name='email_ids')
     active = models.BooleanField(default=True)  
 
     def __str__(self):
