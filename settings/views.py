@@ -1,3 +1,8 @@
-from django.shortcuts import render
+from rest_framework import generics
+from settings.models import Setting
+from settings.serializers import SettingSerializer
 
-# Create your views here.
+class SettingListCreateView(generics.ListCreateAPIView):
+    queryset = Setting.objects.all()
+    serializer_class = SettingSerializer
+
