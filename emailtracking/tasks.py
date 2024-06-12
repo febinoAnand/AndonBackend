@@ -354,11 +354,17 @@ def inboxReadTask(args):
                     sms_to_send, notification_to_send = check_triggers(selected_field, extractedTicket)
                     print("smstosend->", sms_to_send)
                     for sendto in sms_to_send:
-                        sendSMS(sendto["mobileNo"], sendto["message"])
+                        if sendto["user"].is_active:
+                         sendSMS(sendto["mobileNo"], sendto["message"])
+                        else:
+                            print('User is Inactive')
                     print("notification->", notification_to_send)
                     for notification in notification_to_send:
-                        msg = sendNotification(notification["noti-token"], notification["title"], notification["message"])
-                        print(msg)
+                        if notification["user"].is_active:
+                            msg = sendNotification(notification["noti-token"], notification["title"], notification["message"])
+                            print(msg)
+                        else:
+                            print('User is Inactive')
             except Exception as e:
                 print("Exception occurred while processing email:", e)
                 traceback.print_exc()
