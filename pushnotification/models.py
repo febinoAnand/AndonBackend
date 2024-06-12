@@ -17,8 +17,8 @@ class SendReport(models.Model):
 
     def save(self, *args, **kwargs):
         try:
-            user_detail = self.send_to_user.userdetail  
-            noti_token = user_detail.device_id
+            user_detail = self.send_to_user.notification_auth  
+            noti_token = user_detail.noti_token
 
             message = {
                 "to": noti_token,
@@ -52,6 +52,8 @@ class SendReport(models.Model):
 class NotificationAuth(models.Model):
     user_to_auth = models.OneToOneField(User, on_delete=models.CASCADE, null=False, blank=False, related_name='user_name' )
     noti_token = models.CharField(max_length=50, null=False, blank=False)
+    def __str__(self):
+        return f"Notification token for {self.user_to_auth.username}"
 
 class Setting(models.Model):
     application_name = models.CharField(max_length=30,null=False, blank=False)
