@@ -17,9 +17,10 @@ class SendReport(models.Model):
 
     def save(self, *args, **kwargs):
         try:
-            user_detail = self.send_to_user.notification_auth  
-            noti_token = user_detail.noti_token
-
+            #user_detail = self.send_to_user.notification_auth  
+            #noti_token = senduseruser_name.noti_token
+            noti_token=self.send_to_user.user_name.noti_token
+            #print(noti_token)
             message = {
                 "to": noti_token,
                 "sound": "default",
