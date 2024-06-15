@@ -1090,3 +1090,30 @@ class ChangePasswordView(APIView):
 
     def get_user_id_from_token(self, request, token):
         return request.session.get(token)  
+    
+
+class DeleteUserView(APIView):
+    def delete(self, request, user_id):
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        
+        try:
+            user_detail = UserDetail.objects.get(extUser=user)
+            user_detail.delete()
+        except UserDetail.DoesNotExist:
+            pass
+
+        
+        try:
+            unauth_user = UnauthUser.objects.get(emailaddress=user.email)
+            unauth_user.delete()
+        except UnauthUser.DoesNotExist:
+            pass
+
+       
+        user.delete()
+
+        return Response({"success": "User and related details deleted"}, status=status.HTTP_200_OK)
