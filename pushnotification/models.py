@@ -64,3 +64,4 @@ class Setting(models.Model):
         if not self.pk and Setting.objects.exists():
             raise ValueError("Only one instance of Settings can be created")
         return super().save(*args, **kwargs)
+    
