@@ -360,11 +360,11 @@ def inboxReadTask(args):
                         #     print('User is Inactive')
                     print("notification->", notification_to_send)
                     for notification in notification_to_send:
-                        if notification["user"].is_active:
-                            msg = sendNotification(notification["noti-token"], notification["title"], notification["message"])
-                            print(msg)
-                        else:
-                            print('User is Inactive')
+                        # if notification["user"].is_active:
+                        msg = sendNotification(notification["noti-token"], notification["title"], notification["message"])
+                        print(msg)
+                        # else:
+                            # print('User is Inactive')
             except Exception as e:
                 print("Exception occurred while processing email:", e)
                 traceback.print_exc()
