@@ -354,10 +354,10 @@ def inboxReadTask(args):
                     sms_to_send, notification_to_send = check_triggers(selected_field, extractedTicket)
                     print("smstosend->", sms_to_send)
                     for sendto in sms_to_send:
-                        if sendto["user"].is_active:
-                         sendSMS(sendto["mobileNo"], sendto["message"])
-                        else:
-                            print('User is Inactive')
+                        # if sendto["user"].is_active:
+                        sendSMS(sendto["mobileNo"], sendto["message"])
+                        # else:
+                        #     print('User is Inactive')
                     print("notification->", notification_to_send)
                     for notification in notification_to_send:
                         if notification["user"].is_active:
