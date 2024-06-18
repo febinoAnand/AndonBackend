@@ -145,3 +145,9 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 
 
+class WebLoginSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField()
+
+class WebLogoutSerializer(serializers.Serializer):
+    token = serializers.CharField()

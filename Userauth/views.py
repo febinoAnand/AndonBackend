@@ -38,7 +38,7 @@ from .serializers import AuthGroupSerializer
 import smsgateway.integrations as SMSgateway
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
-
+from django.contrib.auth import authenticate, login
 
 # Create your views here.
 
@@ -1120,3 +1120,32 @@ class DeleteUserView(APIView):
         user.delete()
 
         return Response({"success": "User and related details deleted"}, status=status.HTTP_200_OK)
+    
+
+class WebLoginView(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = WebLoginSerializer(data=request.data)
+        if serializer.is_valid():
+            username = serializer.validated_data['username']
+            password = serializer.validated_data['password']
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                token, created = Token.objects.get_or_create(user=user)
+                return Response({'status': 'OK', 'message': 'Login successful', 'token': token.key})
+            return Response({'status': 'INVALID', 'message': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class WebLogoutView(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer =WebLogoutSerializer(data=request.data)
+        if serializer.is_valid():
+            token_key = serializer.validated_data['token']
+            try:
+                token = Token.objects.get(key=token_key)
+                token.delete()
+                return Response({'status': 'OK', 'message': 'Logout successful'})
+            except Token.DoesNotExist:
+                return Response({'status': 'INVALID', 'message': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
