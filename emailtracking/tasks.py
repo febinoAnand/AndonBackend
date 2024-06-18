@@ -269,12 +269,15 @@ def check_triggers(selected_field, extractedTicket):
                     "value": value
                 }
                 print("Trigger report data:", triggerReportData)
-
+                
                 if trigger.send_sms:
+                    
                     for user in trigger.users_to_send.all():
+                        
                         try:
                             user_detail = UserDetail.objects.get(extUser=user)
                             sms_to_send.append({
+                                "user":user,
                                 "mobileNo": user_detail.mobile_no,
                                 "message": smsFormat(triggerReportData)
                             })
@@ -286,6 +289,7 @@ def check_triggers(selected_field, extractedTicket):
                         try:
                             user_detail = UserDetail.objects.get(extUser=user)
                             notification_to_send.append({
+                                "user":user,
                                 "noti-token": user_detail.device_id,
                                 "title": triggerReportData["ticket"],
                                 "message": notificationFormat(triggerReportData)
@@ -354,17 +358,20 @@ def inboxReadTask(args):
                     sms_to_send, notification_to_send = check_triggers(selected_field, extractedTicket)
                     print("smstosend->", sms_to_send)
                     for sendto in sms_to_send:
-                        # if sendto["user"].is_active:
-                        sendSMS(sendto["mobileNo"], sendto["message"])
-                        # else:
-                        #     print('User is Inactive')
+                        #print("sendto---->",sendto)
+                        if sendto["user"].is_active:
+                            #print("sendto---->",sendto)
+                            sendSMS(sendto["mobileNo"], sendto["message"])
+                        else:
+                            print('User is Inactive')
                     print("notification->", notification_to_send)
                     for notification in notification_to_send:
-                        # if notification["user"].is_active:
-                        msg = sendNotification(notification["noti-token"], notification["title"], notification["message"])
-                        print(msg)
-                        # else:
-                            # print('User is Inactive')
+                        if notification["user"].is_active:
+                            #print("notification---->",notification)
+                            msg = sendNotification(notification["noti-token"], notification["title"], notification["message"])
+                            print(msg)
+                        else:
+                            print('User is Inactive')
             except Exception as e:
                 print("Exception occurred while processing email:", e)
                 traceback.print_exc()

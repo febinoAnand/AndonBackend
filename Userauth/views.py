@@ -36,6 +36,9 @@ from rest_framework.exceptions import NotFound
 from .serializers import AuthGroupSerializer
 
 import smsgateway.integrations as SMSgateway
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+
 
 # Create your views here.
 
@@ -1014,7 +1017,7 @@ class LoginView(APIView):
     
 
                                    #user_Logout_view#
-
+@method_decorator(login_required, name='dispatch')
 class LogoutView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = LogoutSerializer(data=request.data)
@@ -1048,7 +1051,7 @@ class LogoutView(APIView):
         return request.session.get(token)
                       
                       #user_changepassword_view#
-
+@method_decorator(login_required, name='dispatch')
 class ChangePasswordView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = ChangePasswordSerializer(data=request.data)
@@ -1091,7 +1094,7 @@ class ChangePasswordView(APIView):
     def get_user_id_from_token(self, request, token):
         return request.session.get(token)  
     
-
+@method_decorator(login_required, name='dispatch')
 class DeleteUserView(APIView):
     def delete(self, request, user_id):
         try:
