@@ -25,8 +25,8 @@ admin.site.register(Ticket, TicketAdmin)
 
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):
-    list_display = ('dep_alias', 'department','date','time')
-    search_fields = ('dep_alias', 'department','date','time')
+    list_display = ('dep_alias', 'department')
+    search_fields = ('dep_alias', 'department')
     filter_horizontal = ('users_to_send',)
 
 

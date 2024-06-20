@@ -53,12 +53,7 @@ class TicketSerializer(serializers.ModelSerializer):
         model = Ticket
         fields = ['id', 'ticketname', 'inboxMessage', 'actual_json', 'is_satisfied']
     
-    def create(self, validated_data):
-        raise MethodNotAllowed('POST', detail='Create method not allowed for this endpoint')
-
-    def update(self, instance, validated_data):
-        raise MethodNotAllowed('PUT', detail='Update method not allowed for this endpoint')
-
+   
 class ReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = Report
@@ -69,32 +64,9 @@ class ReportSerializer(serializers.ModelSerializer):
         data.pop('date', None)
         data.pop('time', None)
         return data
-    
-    def create(self, validated_data):
-        raise MethodNotAllowed('POST', detail='Create method not allowed for this endpoint')
-
-    def update(self, instance, validated_data):
-        raise MethodNotAllowed('PUT', detail='Update method not allowed for this endpoint')
-
 
 class DepartmentSerializer(serializers.ModelSerializer):
         class Meta:
             model = Department
             fields = '__all__'
-            read_only_fields = ('date', 'time')
-
-        def update(self, instance, validated_data):
             
-            validated_data.pop('date', None)
-            validated_data.pop('time', None)
-            
-            
-            instance = super().update(instance, validated_data)
-
-           
-            instance.time = timezone.now()
-            
-           
-            instance.save()
-            
-            return instance

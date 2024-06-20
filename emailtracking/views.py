@@ -20,45 +20,21 @@ class InboxViewSet(viewsets.ModelViewSet):
     http_method_names = ['get','delete']
 
 
-# class ParameterViewSet(viewsets.ModelViewSet):
-#     queryset = Parameter.objects.all()
-#     serializer_class = ParameterSerializer
-
-
-# class SettingViewSet(viewsets.ModelViewSet):
-#     queryset = Setting.objects.all()
-#     serializer_class = SettingSerializer
-#     http_method_names = ["get","post","put"]
-
-# class TriggerViewSet(viewsets.ModelViewSet):
-#     queryset = Trigger.objects.all()
-#     serializer_class = TriggerSerializer
-
-# class ParameterFilterViewSet(viewsets.ModelViewSet):
-#     queryset = ParameterFilter.objects.all()
-#     serializer_class = ParameterFilterSerializer
-
 class TicketViewSet(viewsets.ModelViewSet):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
-    http_method_names=["get"]
+    http_method_names = ['get','delete']
 
-# class ReportViewSet(viewsets.ModelViewSet):
-#     queryset = Report.objects.all()
-#     serializer_class = ReportSerializer
-#     http_method_names = ["get"]
 
 class EmailIDViewSet(viewsets.ModelViewSet):
     queryset = EmailID.objects.all()
     serializer_class = EmailIDSerializer
 
-class TicketViewSet(viewsets.ModelViewSet):
-    queryset = Ticket.objects.all()
-    serializer_class = TicketSerializer
 
 class ReportViewSet(viewsets.ModelViewSet):
     queryset = Report.objects.all()
     serializer_class = ReportSerializer
+    http_method_names = ['get','delete']
 
 class DepartmentViewSet(viewsets.ModelViewSet):
     queryset = Department.objects.all()
