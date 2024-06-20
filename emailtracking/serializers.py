@@ -24,7 +24,7 @@ class GroupSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id","username"]
+        fields = ["id","username","email"]
 
 class GroupUserSerializer(serializers.ModelSerializer):
     user_list = serializers.SerializerMethodField()
@@ -48,7 +48,7 @@ class SettingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Setting
         fields = "__all__"
-        
+
 class TicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
@@ -56,15 +56,11 @@ class TicketSerializer(serializers.ModelSerializer):
     
    
 class ReportSerializer(serializers.ModelSerializer):
+    send_to_user = UserSerializer(many=True)
     class Meta:
         model = Report
         fields = '__all__'
     
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        data.pop('date', None)
-        data.pop('time', None)
-        return data
 
 class DepartmentSerializer(serializers.ModelSerializer):
         class Meta:

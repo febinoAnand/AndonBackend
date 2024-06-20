@@ -47,17 +47,14 @@ class EmailIDAdmin(admin.ModelAdmin):
 
 admin.site.register(EmailID, EmailIDAdmin)
 
-class SettingForm(forms.ModelForm):
-    class Meta:
-        model = Setting
-        fields = '__all__'
 
-    def clean(self):
-        cleaned_data = super().clean()
-        if Setting.objects.exists() and not self.instance.pk:
-            raise forms.ValidationError("Only one instance of Setting can be created.")
-        return cleaned_data
+    
 
-@admin.register(Setting)
 class SettingAdmin(admin.ModelAdmin):
-    form = SettingForm
+    list_display = ["id","host", "port","username","checkstatus","checkinterval"]
+    def has_add_permission(self, request) :
+        if Setting.objects.count() > 0:
+            return False
+        return True
+
+admin.site.register(Setting, SettingAdmin)
