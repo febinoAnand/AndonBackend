@@ -56,7 +56,7 @@ class Report(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.department
+        return self.Department
 
 class Setting(models.Model):
     host = models.CharField(max_length=100, default='default_host')
@@ -85,8 +85,16 @@ class Department(models.Model):
     dep_alias = models.CharField(max_length=100)
     department = models.CharField(max_length=100)
     users_to_send = models.ManyToManyField(User, related_name='departments_to_send')
-    date = models.DateTimeField(auto_now_add=True)
-    time = models.DateTimeField(auto_now=True)
+    date = models.DateField(blank=True, null=True)
+    time = models.TimeField(blank=True, null=True)
     
+
+    def save(self, *args, **kwargs):
+        if not self.date:
+            self.date = timezone.now().date()
+        if not self.time:
+            self.time = timezone.now().time()
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return self.dep_alias
+        return self.department

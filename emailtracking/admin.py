@@ -25,8 +25,8 @@ admin.site.register(Ticket, TicketAdmin)
 
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):
-    list_display = ('dep_alias', 'department')
-    search_fields = ('dep_alias', 'department')
+    list_display = ('dep_alias', 'department','date','time')
+    search_fields = ('dep_alias', 'department','date','time')
     filter_horizontal = ('users_to_send',)
 
 
@@ -37,8 +37,8 @@ class ReportAdmin(admin.ModelAdmin):
     filter_horizontal = ('send_to_user',)
 
     def get_users_to_send(self, obj):
-        return ", ".join([user.username for user in obj.users_to_send.all()])
-    get_users_to_send.short_description = 'Users to Send'
+        return ", ".join([user.username for user in obj.send_to_user.all()])
+    get_users_to_send.short_description = 'send_to_user'
 
 
 
