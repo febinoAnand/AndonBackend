@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import *
-
+from django import forms
 # Register your models here.
 class InboxAdmin(admin.ModelAdmin):
     list_display = ["date","time","from_email","to_email","subject","show_message"]
@@ -46,3 +46,18 @@ class EmailIDAdmin(admin.ModelAdmin):
     list_display = ['id', 'email', 'active']
 
 admin.site.register(EmailID, EmailIDAdmin)
+
+class SettingForm(forms.ModelForm):
+    class Meta:
+        model = Setting
+        fields = '__all__'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if Setting.objects.exists() and not self.instance.pk:
+            raise forms.ValidationError("Only one instance of Setting can be created.")
+        return cleaned_data
+
+@admin.register(Setting)
+class SettingAdmin(admin.ModelAdmin):
+    form = SettingForm

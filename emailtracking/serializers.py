@@ -48,6 +48,7 @@ class SettingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Setting
         fields = "__all__"
+        
 class TicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
