@@ -10,13 +10,10 @@ from datetime import datetime
 from email.utils import parsedate_to_datetime
 from django.contrib.auth.models import User
 from Userauth.models import UserDetail
+from pushnotification.models import NotificationAuth
 from pushnotification.integrations import sendNotification, sendNotificationWithUser
-import operator
-from smsgateway.integrations import *
-from emailtracking.models import Setting
+from smsgateway.integrations import sendSMS
 
-
-# Format the message for SMS
 def smsFormat(info):
     print("Formatting SMS message with info:", info)
     message = """TicketName: {ticket},
@@ -35,7 +32,6 @@ def smsFormat(info):
     )
     return message
 
-# Format the message for notifications
 def notificationFormat(info):
     print("Formatting notification message with info:", info)
     message = """TicketName: {ticket},
@@ -54,76 +50,12 @@ def notificationFormat(info):
     )
     return message
 
-# Check if a string value passes the filter criteria
-def checkTriggerPassString(filter, value):
-    print("Checking string filter:", filter.operator, filter.value, "against value:", value)
-    if filter.operator == "equals":
-        return value == filter.value
-    return False
-
-# Check if a numerical value passes the filter criteria
-def check_conditions(conditions, input_number):
-    ops = {
-        '>=': operator.ge,
-        '<': operator.lt,
-        '==': operator.eq,
-        '!=': operator.ne,
-        '<=': operator.le,
-        '>': operator.gt,
-        '<': operator.lt,
-        'exists': lambda x, y: x == y
-    }
-
-    final_result = None
-
-    for i, cond in enumerate(conditions):
-        op = ops[cond['operator']]
-        value = float(cond['fixed_value'])
-
-        current_result = op(input_number, value)
-
-        if i == 0:
-            final_result = current_result
-        else:
-            logical_op = cond.get('logical_operator', 'and') 
-            if logical_op == 'and':
-                final_result = final_result and current_result
-            elif logical_op == 'or':
-                final_result = final_result or current_result
-
-        if not final_result:
-            break
-
-    return final_result
-
-def map_operator(operator_text):
-    operator_mapping = {
-        'greater than': '>',
-        'less than': '<',
-        'greater than or equal to': '>=',
-        'less than or equal to': '<=',
-        'equal to': '==',
-        'not equal to': '!='
-    }
-    return operator_mapping.get(operator_text, operator_text)
-
-
-# Check if a value is a number
-def is_number(num):
-    types = [int, float, complex]
-    for t in types:
-        if isinstance(num, t):
-            return True
-    return False
-
-# Extract numbers from a string
 def extract_numbers(text):
     print("Extracting numbers from text:", text)
     pattern = r'\d+'
     numbers = re.findall(pattern, text)
     return [int(num) for num in numbers]
 
-# Extract ticket information from the email message
 def extract_ticket_info(text):
     print("Extracting ticket info from text")
     pattern = r"a new ticket \"(?P<ticket_name>.*?)\" has been created.*?(?P<info>Ticket type:.*?)(?=(a new ticket|$))"
@@ -140,7 +72,6 @@ def extract_ticket_info(text):
     print("No match found for ticket info extraction")
     return None
 
-# Generate JSON data from the ticket information
 def generate_json(ticket_info):
     print("Generating JSON from ticket info:", ticket_info)
     if ticket_info:
@@ -152,7 +83,6 @@ def generate_json(ticket_info):
         return json.dumps(json_data)
     return None
 
-# Connect to the email server and retrieve unread emails
 def connect_to_mail_server(imap_host, imap_user, password, port):
     print(f"Connecting to mail server: {imap_host} with user: {imap_user}")
     mail = imaplib.IMAP4_SSL(imap_host, port)
@@ -162,7 +92,6 @@ def connect_to_mail_server(imap_host, imap_user, password, port):
     print("Connected to mail server, status:", status)
     return mail, data
 
-# Process each unread email
 def process_email(mail, email_id):
     print(f"Processing email ID: {email_id}")
     status, data = mail.fetch(email_id, '(RFC822)')
@@ -177,7 +106,6 @@ def process_email(mail, email_id):
     print(f"Processed email: From - {email_msg['From']}, Date - {email_date}, Time - {email_time}, Subject - {email_msg['Subject']}")
     return email_msg, message_payload, email_date, email_time
 
-# Save the email to the inbox model
 def save_inbox(email_msg, message_payload, email_date, email_time, email_id):
     print("Saving email to Inbox model")
     return Inbox.objects.create(
@@ -190,112 +118,77 @@ def save_inbox(email_msg, message_payload, email_date, email_time, email_id):
         message_id=email_id
     )
 
-# Extract fields and save to the ticket model
+def extract_department_from_topology(topology):
+    print(f"Extracting department from topology: {topology}")
+    parts = topology.split('/')
+    if len(parts) > 2:
+        department_name = parts[1].strip()
+        return department_name
+    return None
+
 def extract_and_save_fields(message_payload, email_date, email_time, inwardMail):
     print("Extracting and saving fields from email payload")
     ticket_info = extract_ticket_info(message_payload)
     json_data = json.loads(generate_json(ticket_info))
     selected_field = {}
+    department_name = None
     if "Ticket Name" in json_data.keys():
         for key, value in json_data["fields"].items():
-            field_exist = Parameter.objects.filter(field=key)
-            if field_exist:
-                numbers = extract_numbers(value)
-                if field_exist[0].datatype == "number":
-                    value = numbers[0] if numbers else "Not valid"
-                selected_field[key] = value
+            selected_field[key] = value
+            if key == "Topology":
+                department_name = extract_department_from_topology(value)
         extractedTicket = Ticket.objects.create(
             ticketname=json_data["Ticket Name"],
             date=email_date,
             time=email_time,
             inboxMessage=inwardMail,
-            actual_json=json_data["fields"],
-            required_json=selected_field
+            actual_json=json_data["fields"]
         )
+        if department_name:
+            extractedTicket.actual_json['department_name'] = department_name
         print("Fields extracted and saved to Ticket model:", extractedTicket)
         return extractedTicket, selected_field
     return None, None
 
-# Check if triggers are satisfied and generate reports
-def check_triggers(selected_field, extractedTicket):
-    print("Checking triggers for selected fields")
-    sms_to_send = []
-    notification_to_send = []
-    for key, value in selected_field.items():
-        triggerList = Trigger.objects.filter(trigger_field__field=key).filter(trigger_switch=True)
-        print(f"Field: {key}, Value: {value}, Number of triggers: {len(triggerList)}")
-        for trigger in triggerList:
-            parameterFilterList = trigger.parameter_filter_list.all()
-            print("parameterFilterList------>", parameterFilterList)
-            isTriggerSatisfy = True
-            filterString = []
-            conditions = []
-            for filter in parameterFilterList:
-                filterString.append(filter.operator + " - " + str(filter.value))
-                condition = {
-                    'operator': map_operator(filter.operator),
-                    'fixed_value': filter.value,
-                    'logical_operator': filter.logical_operator
-                }
-                conditions.append(condition)
+def check_ticket_satisfaction(selected_field, extractedTicket):
+    print("Checking if ticket is satisfied")
+    department_name = extractedTicket.actual_json.get('department_name')
+    if department_name:
+        department_exists = Department.objects.filter(department=department_name).exists()
+        extractedTicket.is_satisfied = department_exists
+    else:
+        extractedTicket.is_satisfied = False
+    extractedTicket.save()
+    return extractedTicket.is_satisfied
 
-            if trigger.trigger_field.datatype == "number" and is_number(value):
-                isTriggerSatisfy = check_conditions(conditions, float(value))
+def generate_reports(selected_field, extractedTicket):
+    print("Generating reports for ticket:", extractedTicket.ticketname)
+    department_name = extractedTicket.actual_json.get('department_name')
+    
+    if department_name:
+        try:
+            department = Department.objects.get(department=department_name)
+            report = Report.objects.create(
+                Department=department.dep_alias,
+                message=f"""TicketName: {extractedTicket.ticketname},
+                          Raised: {extractedTicket.date} {extractedTicket.time},
+                          Field: {selected_field.get('Field', 'N/A')},
+                          Value: {selected_field.get('Value', 'N/A')},
+                          Trigger: [{selected_field.get('Trigger', 'N/A')}],
+                          Message: {extractedTicket.inboxMessage.message}"""
+            )
+            for user in department.users_to_send.all():
+                report.send_to_user.add(user)
+            
+            print(f"Report created for department: {department.department}")
+            return report
+        except Department.DoesNotExist:
+            print(f"Department {department_name} does not exist. Report not created.")
+    else:
+        print("Department name not found in ticket. Report not created.")
+    
+    return None
 
-            elif trigger.trigger_field.datatype == "character" and not is_number(value):
-                for filter in parameterFilterList:
-                    isTriggerPass = checkTriggerPassString(filter, value)
-                    isTriggerSatisfy = isTriggerSatisfy and isTriggerPass
-            else:
-                isTriggerSatisfy = False
-
-            print(f"Trigger: {trigger}, Is satisfied: {isTriggerSatisfy}")
-
-            if isTriggerSatisfy:
-                Report.objects.create(
-                    date=datetime.now().strftime("%Y-%m-%d"),
-                    time=datetime.now().strftime("%H:%M:%S"),
-                    active_trigger=trigger,
-                    actual_value=value,
-                    ticket=extractedTicket
-                )
-                triggerReportData = {
-                    "date": datetime.now().strftime("%Y-%m-%d"),
-                    "time": datetime.now().strftime("%H:%M:%S"),
-                    "field": trigger.trigger_field.field,
-                    "ticket": extractedTicket.ticketname,
-                    "triggerfilter": "and ".join(filterString),
-                    "message": trigger.notification_message,
-                    "value": value
-                }
-                print("Trigger report data:", triggerReportData)
-
-                if trigger.send_sms:
-                    for user in trigger.users_to_send.all():
-                        try:
-                            user_detail = UserDetail.objects.get(extUser=user)
-                            sms_to_send.append({
-                                "mobileNo": user_detail.mobile_no,
-                                "message": smsFormat(triggerReportData)
-                            })
-                        except UserDetail.DoesNotExist:
-                            print(f"UserDetail does not exist for user: {user}")
-
-                if trigger.send_notification:
-                    for user in trigger.users_to_send.all():
-                        try:
-                            user_detail = UserDetail.objects.get(extUser=user)
-                            notification_to_send.append({
-                                "noti-token": user_detail.device_id,
-                                "title": triggerReportData["ticket"],
-                                "message": notificationFormat(triggerReportData)
-                            })
-                        except UserDetail.DoesNotExist:
-                            print(f"UserDetail does not exist for user: {user}")
-
-    return sms_to_send, notification_to_send
-
-# Main task function
 @shared_task
 def inboxReadTask(args):
     try:
@@ -320,10 +213,8 @@ def inboxReadTask(args):
             print("Failed to connect to mail server")
             return
 
-        # Get all allowed email IDs from the EmailID table
         allowed_email_ids = EmailID.objects.filter(active=True).values_list('email', flat=True)
 
-        # Retrieve and sort email ids by received time
         email_data = []
         for num in data[0].split():
             try:
@@ -341,37 +232,44 @@ def inboxReadTask(args):
                 print("Exception occurred while fetching email:", e)
                 traceback.print_exc()
 
-        # Sort emails by date (oldest first)
         email_data.sort(key=lambda x: x[1])
 
-        # Process each email in the sorted order
         for email_id, email_date in email_data:
             try:
                 email_msg, message_payload, email_date, email_time = process_email(mail, email_id)
                 inwardMail = save_inbox(email_msg, message_payload, email_date, email_time, email_id)
                 extractedTicket, selected_field = extract_and_save_fields(message_payload, email_date, email_time, inwardMail)
                 if extractedTicket:
-                    sms_to_send, notification_to_send = check_triggers(selected_field, extractedTicket)
-                    print("smstosend->", sms_to_send)
-                    for sendto in sms_to_send:
-                        # if sendto["user"].is_active:
-                        sendSMS(sendto["mobileNo"], sendto["message"])
-                        # else:
-                        #     print('User is Inactive')
-                    print("notification->", notification_to_send)
-                    for notification in notification_to_send:
-                        # if notification["user"].is_active:
-                        msg = sendNotification(notification["noti-token"], notification["title"], notification["message"])
-                        print(msg)
-                        # else:
-                            # print('User is Inactive')
-            except Exception as e:
-                print("Exception occurred while processing email:", e)
-                traceback.print_exc()
+                    is_satisfied = check_ticket_satisfaction(selected_field, extractedTicket)
+                    if is_satisfied:
+                        report = generate_reports(selected_field, extractedTicket)
+                        info = {
+                            "ticket": extractedTicket.ticketname,
+                            "date": extractedTicket.date,
+                            "time": extractedTicket.time,
+                            "field": selected_field.get('Field', 'N/A'),
+                            "value": selected_field.get('Value', 'N/A'),
+                            "triggerfilter": selected_field.get('Trigger', 'N/A'),
+                            "message": extractedTicket.inboxMessage.message
+                        }
+                        sms_message = smsFormat(info)
+                        notification_message = notificationFormat(info)
+                        for user in report.send_to_user.all():
+                            user_detail = UserDetail.objects.get(extUser=user)
+                            sendSMS(user_detail.mobile_no, sms_message)
+                           # sendNotification(user, notification_message)
 
-        return "Successfully done"
+                            try:
+                                noti_auth = NotificationAuth.objects.get(user_to_auth=user)
+                                noti_token = noti_auth.noti_token
+                                sendNotification(noti_token, extractedTicket.inboxMessage.subject, notification_message)
+                            except NotificationAuth.DoesNotExist:
+                                print(f"NotificationAuth entry not found for user {user.username}. Notification not sent.")
+                    else:
+                        print(f"Ticket {extractedTicket.ticketname} is not satisfied. Skipping report generation.")
+            except Exception as e:
+                print("Exception occurred while processing email ID:", email_id, e)
+                traceback.print_exc()
     except Exception as e:
         print("Exception occurred in inboxReadTask:", e)
         traceback.print_exc()
-        return "Task failed"
-
