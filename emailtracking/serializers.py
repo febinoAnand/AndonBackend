@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import *
 from django.contrib.auth.models import User
+from rest_framework.exceptions import MethodNotAllowed
 
 class InboxSerializer(serializers.ModelSerializer):
     class Meta:
@@ -47,39 +48,35 @@ class SettingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Setting
         fields = "__all__"
-
 class TicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
         fields = ['id', 'ticketname', 'inboxMessage', 'actual_json', 'is_satisfied']
+    
+    def create(self, validated_data):
+        raise MethodNotAllowed('POST', detail='Create method not allowed for this endpoint')
+
+    def update(self, instance, validated_data):
+        raise MethodNotAllowed('PUT', detail='Update method not allowed for this endpoint')
 
 class ReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = Report
         fields = '__all__'
-        extra_kwargs = {
-            'date': {'read_only': True},
-            'time': {'read_only': True}
-        }
+    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data.pop('date', None)
+        data.pop('time', None)
+        return data
+    
+    def create(self, validated_data):
+        raise MethodNotAllowed('POST', detail='Create method not allowed for this endpoint')
 
     def update(self, instance, validated_data):
-       
-        date = validated_data.pop('date', None)
-        time = validated_data.pop('time', None)
-        
-        
-        instance = super().update(instance, validated_data)
+        raise MethodNotAllowed('PUT', detail='Update method not allowed for this endpoint')
 
-        if date is not None:
-            instance.date = date
-        if time is not None:
-            instance.time = time
 
- 
-        instance.save()
-        
-        return instance
-    
 class DepartmentSerializer(serializers.ModelSerializer):
         class Meta:
             model = Department
