@@ -3,6 +3,7 @@ version: '3.8'
 services:
     redis:
         image: redis:7.0.11-alpine
+        command: redis-server --requirepass ifm_9182837465
         ports:
             - 6379:6379
         
