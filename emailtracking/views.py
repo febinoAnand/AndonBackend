@@ -7,6 +7,10 @@ from .tasks import inboxReadTask
 from rest_framework import viewsets
 from .models import *
 from .serializers import *
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+from django.contrib.auth import get_user_model
+
 
 # Create your views here.
 
@@ -44,3 +48,25 @@ class DepartmentViewSet(viewsets.ModelViewSet):
 class SettingViewSet(viewsets.ModelViewSet):
     queryset = Setting.objects.all()
     serializer_class = SettingSerializer
+
+class DashboardStatistics(APIView):
+    def get(self, request):
+        User = get_user_model()
+        total_users = User.objects.count()
+        active_users = User.objects.filter(is_active=True).count()
+        inactive_users = total_users - active_users
+        total_departments = Department.objects.count()
+        total_inbox = Inbox.objects.count()
+        total_tickets = Ticket.objects.count()
+
+        data = {
+            'total_users': total_users,
+            'active_users': active_users,
+            'inactive_users': inactive_users,
+            'total_departments': total_departments,
+            'total_inbox': total_inbox,
+            'total_tickets': total_tickets,
+        }
+
+        serializer = DashboardSerializer(data)
+        return Response(serializer.data)
