@@ -4,6 +4,7 @@ from django.contrib.auth.models import Group, User
 from django.utils import timezone
 import json
 import random
+from django.db.models import UniqueConstraint
 # Create your models here.
 
 class Inbox(models.Model):
@@ -80,11 +81,17 @@ class EmailID(models.Model):
 
     def __str__(self):
         return self.email
-    
+
+
 class Department(models.Model):
-    dep_alias = models.CharField(max_length=100)
-    department = models.CharField(max_length=100)
+    dep_alias = models.CharField(max_length=100, unique=True)
+    department = models.CharField(max_length=100, unique=True)
     users_to_send = models.ManyToManyField(User, related_name='departments_to_send')
 
     def __str__(self):
         return self.department
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['department', 'dep_alias'], name='unique_department_dep_alias')
+        ]
