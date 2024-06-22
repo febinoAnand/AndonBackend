@@ -16,39 +16,38 @@ from smsgateway.integrations import sendSMS
 
 def smsFormat(info):
     print("Formatting SMS message with info:", info)
-    message = """TicketName: {ticket},
-    Raised: {date} {time},
-    Field: {field},
-    value: {value},
-    trigger: [{triggerfilter}],
-    message: {message}""".format(
-        ticket=info["ticket"],
-        date=info["date"],
-        time=info["time"],
-        field=info["field"],
-        value=info["value"],
-        triggerfilter=info["triggerfilter"],
-        message=info["message"]
+    message = """TicketName: {ticket_name},
+    Raised: {occurred},
+    Threshold violation: {threshold_violation},
+    Defined threshold: {defined_threshold},
+    Topology: {topology},
+    HR1: {hr1}""".format(
+        ticket_name=info["ticket_name"],
+        occurred=info["occurred"],
+        threshold_violation=info["threshold_violation"],
+        defined_threshold=info["defined_threshold"],
+        topology=info["topology"],
+        hr1=info["hr1"]
     )
     return message
 
 def notificationFormat(info):
     print("Formatting notification message with info:", info)
-    message = """TicketName: {ticket},
-    Raised: {date} {time},
-    Field: {field},
-    value: {value},
-    trigger: [{triggerfilter}],
-    message: {message}""".format(
-        ticket=info["ticket"],
-        date=info["date"],
-        time=info["time"],
-        field=info["field"],
-        value=info["value"],
-        triggerfilter=info["triggerfilter"],
-        message=info["message"]
+    message = """TicketName: {ticket_name},
+    Raised: {occurred},
+    Threshold violation: {threshold_violation},
+    Defined threshold: {defined_threshold},
+    Topology: {topology},
+    HR1: {hr1}""".format(
+        ticket_name=info["ticket_name"],
+        occurred=info["occurred"],
+        threshold_violation=info["threshold_violation"],
+        defined_threshold=info["defined_threshold"],
+        topology=info["topology"],
+        hr1=info["hr1"]
     )
     return message
+
 
 def extract_numbers(text):
     print("Extracting numbers from text:", text)
@@ -58,19 +57,15 @@ def extract_numbers(text):
 
 def extract_ticket_info(text):
     print("Extracting ticket info from text")
-    pattern = r"a new ticket \"(?P<ticket_name>.*?)\" has been created.*?(?P<info>Ticket type:.*?)(?=(a new ticket|$))"
+    pattern = r"a new ticket \"(?P<ticket_name>.*?)\" has been created\..*?Ticket type: (?P<ticket_type>.*?)\n.*?Occurred \(UTC\+0:00\): (?P<occurred>.*?)\n.*?Threshold violation: (?P<threshold_violation>.*?)\n.*?Defined threshold value: (?P<defined_threshold>.*?)\n.*?Topology: (?P<topology>.*?)\n.*?HR1: (?P<hr1>.*?)\n"
     match = re.search(pattern, text, re.DOTALL)
     if match:
-        ticket_name = match.group('ticket_name')
-        info = match.group('info')
-        info_pattern = r"(?P<key>.*?): (?P<value>[^\n]+)"
-        matches = re.findall(info_pattern, info)
-        ticket_info = {f"{key.strip()}": value.strip() for key, value in matches}
-        ticket_info['Ticket Name'] = ticket_name
+        ticket_info = match.groupdict()
         print("Extracted ticket info:", ticket_info)
         return ticket_info
     print("No match found for ticket info extraction")
     return None
+
 
 def generate_json(ticket_info):
     print("Generating JSON from ticket info:", ticket_info)
@@ -120,11 +115,13 @@ def save_inbox(email_msg, message_payload, email_date, email_time, email_id):
 
 def extract_department_from_topology(topology):
     print(f"Extracting department from topology: {topology}")
-    parts = topology.split('/')
-    if len(parts) > 2:
-        department_name = parts[1].strip()
-        return department_name
+    topology_parts = topology.split('/')
+    for part in topology_parts:
+        stripped_part = part.strip()
+        if Department.objects.filter(department=stripped_part).exists():
+            return stripped_part
     return None
+
 
 def extract_and_save_fields(message_payload, email_date, email_time, inwardMail):
     print("Extracting and saving fields from email payload")
@@ -136,7 +133,11 @@ def extract_and_save_fields(message_payload, email_date, email_time, inwardMail)
         for key, value in json_data["fields"].items():
             selected_field[key] = value
             if key == "Topology":
-                department_name = extract_department_from_topology(value)
+                topology_parts = extract_department_from_topology(value)
+                for part in topology_parts:
+                    if Department.objects.filter(department=part.strip()).exists():
+                        department_name = part.strip()
+                        break
         extractedTicket = Ticket.objects.create(
             ticketname=json_data["Ticket Name"],
             date=email_date,
@@ -172,9 +173,6 @@ def generate_reports(selected_field, extractedTicket):
                 Department=department.dep_alias,
                 message=f"""TicketName: {extractedTicket.ticketname},
                           Raised: {extractedTicket.date} {extractedTicket.time},
-                          Field: {selected_field.get('Field', 'N/A')},
-                          Value: {selected_field.get('Value', 'N/A')},
-                          Trigger: [{selected_field.get('Trigger', 'N/A')}],
                           Message: {extractedTicket.inboxMessage.message}"""
             )
             for user in department.users_to_send.all():
@@ -238,35 +236,39 @@ def inboxReadTask(args):
             try:
                 email_msg, message_payload, email_date, email_time = process_email(mail, email_id)
                 inwardMail = save_inbox(email_msg, message_payload, email_date, email_time, email_id)
-                extractedTicket, selected_field = extract_and_save_fields(message_payload, email_date, email_time, inwardMail)
-                if extractedTicket:
-                    is_satisfied = check_ticket_satisfaction(selected_field, extractedTicket)
-                    if is_satisfied:
-                        report = generate_reports(selected_field, extractedTicket)
-                        info = {
-                            "ticket": extractedTicket.ticketname,
-                            "date": extractedTicket.date,
-                            "time": extractedTicket.time,
-                            "field": selected_field.get('Field', 'N/A'),
-                            "value": selected_field.get('Value', 'N/A'),
-                            "triggerfilter": selected_field.get('Trigger', 'N/A'),
-                            "message": extractedTicket.inboxMessage.message
-                        }
-                        sms_message = smsFormat(info)
-                        notification_message = notificationFormat(info)
-                        for user in report.send_to_user.all():
-                            user_detail = UserDetail.objects.get(extUser=user)
-                            sendSMS(user_detail.mobile_no, sms_message)
-                           # sendNotification(user, notification_message)
+                ticket_info = extract_ticket_info(message_payload)
 
-                            try:
-                                noti_auth = NotificationAuth.objects.get(user_to_auth=user)
-                                noti_token = noti_auth.noti_token
-                                sendNotification(noti_token, extractedTicket.inboxMessage.subject, notification_message)
-                            except NotificationAuth.DoesNotExist:
-                                print(f"NotificationAuth entry not found for user {user.username}. Notification not sent.")
+                if ticket_info:
+                    sms_message = smsFormat(ticket_info)
+                    notification_message = notificationFormat(ticket_info)
+                    department_name = extract_department_from_topology(ticket_info["topology"])
+
+                    if department_name:
+                        try:
+                            department = Department.objects.get(department=department_name)
+                            report = Report.objects.create(
+                                Department=department.dep_alias,
+                                message=f"""TicketName: {ticket_info["ticket_name"]},
+                                          Raised: {ticket_info["occurred"]},
+                                          Message: {message_payload}"""
+                            )
+                            for user in department.users_to_send.all():
+                                user_detail = UserDetail.objects.get(extUser=user)
+                                sendSMS(user_detail.mobile_no, sms_message)
+                                # sendNotification(user, notification_message)
+
+                                try:
+                                    noti_auth = NotificationAuth.objects.get(user_to_auth=user)
+                                    noti_token = noti_auth.noti_token
+                                    sendNotification(noti_token, email_msg['Subject'], notification_message)
+                                except NotificationAuth.DoesNotExist:
+                                    print(f"NotificationAuth entry not found for user {user.username}. Notification not sent.")
+                        except Department.DoesNotExist:
+                            print(f"Department {department_name} does not exist. Report not created.")
                     else:
-                        print(f"Ticket {extractedTicket.ticketname} is not satisfied. Skipping report generation.")
+                        print("Department name not found in ticket. Report not created.")
+                else:
+                    print(f"Ticket info could not be extracted from email ID: {email_id}. Skipping report generation.")
             except Exception as e:
                 print("Exception occurred while processing email ID:", email_id, e)
                 traceback.print_exc()
