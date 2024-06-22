@@ -64,7 +64,7 @@ class SettingSerializer(serializers.ModelSerializer):
 class TicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
-        fields = ['id', 'ticketname', 'inboxMessage', 'actual_json', 'is_satisfied']
+        fields = ['id','date','time','ticketname', 'inboxMessage', 'actual_json', 'is_satisfied']
     
    
 class ReportSerializer(serializers.ModelSerializer):
