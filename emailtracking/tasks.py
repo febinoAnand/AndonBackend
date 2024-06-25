@@ -32,32 +32,29 @@ def extract_numbers(text):
 
 def extract_ticket_info(text):
     print("Extracting ticket info from text")
-    ticket_info = {}
+    pattern = r"a new ticket \"(?P<ticket_name>.*?)\" has been created.*?(?P<info>Ticket type:.*?)(?=(a new ticket|$))"
+    match = re.search(pattern, text, re.DOTALL)
+    if match:
+        ticket_name = match.group('ticket_name')
+        info = match.group('info')
+        info_pattern = r"(?P<key>.*?): (?P<value>[^\n]+)"
+        matches = re.findall(info_pattern, info)
+        ticket_info = {f"{key.strip()}": value.strip() for key, value in matches}
+        ticket_info['Ticket Name'] = ticket_name
+        print("Extracted ticket info:", ticket_info)
+        return ticket_info
+    print("No match found for ticket info extraction")
+    return None
 
-    # Extract ticket name
-    ticket_name_pattern = r'a new ticket "(?P<ticket_name>.*?)" has been created'
-    ticket_name_match = re.search(ticket_name_pattern, text)
-    if ticket_name_match:
-        ticket_info['ticket_name'] = ticket_name_match.group('ticket_name')
-    
-    # Extract all other fields
-    fields_pattern = r'(\w[\w\s]*?):\s*(.*?)\n'
-    fields_match = re.findall(fields_pattern, text)
-    for field in fields_match:
-        key = field[0].strip().lower().replace(" ", "_")
-        ticket_info[key] = field[1].strip()
-    
-    print("Extracted ticket info:", ticket_info)
-    return ticket_info
-
+# Generate JSON data from the ticket information
 def generate_json(ticket_info):
     print("Generating JSON from ticket info:", ticket_info)
     if ticket_info:
         json_data = {
-            "Ticket Name": ticket_info['ticket_name'],  
+            "Ticket Name": ticket_info['Ticket Name'],
             "fields": ticket_info
         }
-        del json_data['fields']['ticket_name']
+        del json_data['fields']['Ticket Name']
         return json.dumps(json_data)
     return None
 
@@ -125,7 +122,7 @@ def extract_and_save_fields(message_payload, email_date, email_time, inwardMail)
         selected_field["ticket_name"] = json_data["Ticket Name"]
         for key, value in json_data["fields"].items():
             selected_field[key] = value
-            if key == "topology":
+            if key == "Topology":
                 topology_parts = extract_department_from_topology(value)
                 if topology_parts:
                     department_name = topology_parts
