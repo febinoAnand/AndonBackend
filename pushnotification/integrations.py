@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from Userauth.models import UserDetail  
 from .models import SendReport  
+from pushnotification.models import NotificationAuth
 import datetime
 
 def sendNotificationWithUser(user, title, message):
@@ -21,13 +22,15 @@ def sendNotificationWithUser(user, title, message):
 
 def sendNotification(noti_token, title, message):
     try:
-        user_detail = UserDetail.objects.get(device_id=noti_token)
-        user = user_detail.extUser
+        user_detail = NotificationAuth.objects.get(noti_token=noti_token)
+        user = user_detail.user_to_auth
         sendNotificationWithUser(user, title, message)
-        print(f"Notification sent to {user.username} with Device ID: {user_detail.device_id}")
+        print(f"Notification sent to {user.username} with Notification ID: {user_detail.noti_token}")
         success_msg = "Notification processing completed."
         # print(success_msg)
         return success_msg
+    # except Exception as e:
+    #     print("Error->",e)
     except UserDetail.DoesNotExist:
         print(f"UserDetail with noti-token {noti_token} does not exist. Notification not sent.")
     
