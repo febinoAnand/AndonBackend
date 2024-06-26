@@ -15,9 +15,33 @@ from pushnotification.integrations import sendNotification, sendNotificationWith
 from smsgateway.integrations import sendSMS
 
 def smsFormat(info):
-    print("Formatting SMS message with info:", info)
-    message = "\n".join([f"{key.replace('_', ' ').capitalize()}: {value}" for key, value in info.items()])
-    return message
+    print("Formatting SMS message with specific fields:", info)
+    message_payload = info.get('message', "")
+    ticket_name = info.get('ticket', "")
+    occurred = info.get('Occurred (UTC+0:00)', f"{info.get('date', '')} {info.get('time', '')}")
+    
+    thd_violation = ""
+    def_thd = ""
+    topology = ""
+
+    for line in message_payload.split('\n'):
+        if 'Threshold violation:' in line:
+            thd_violation = line.split('Threshold violation: ')[-1].strip()
+        if 'Defined threshold value:' in line:
+            def_thd = line.split('Defined threshold value: ')[-1].strip()
+        if 'Topology:' in line:
+            topology = line.split('Topology: ')[-1].strip()
+
+    message = (
+        f"Ticket:{ticket_name},{occurred}\n"
+        f"Thd violation:{thd_violation}\n"
+        f"Def Thd:{def_thd}\n"
+        f"Topology:{topology}\n"
+    )
+    #print("messagestrip--->",message.strip())
+    return message.strip()
+
+
 
 def notificationFormat(info):
     print("Formatting notification message with info:", info)
