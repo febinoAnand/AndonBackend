@@ -275,15 +275,20 @@ def inboxReadTask(args):
                         notification_message = notificationFormat(info)
                         for user in report.send_to_user.all():
                             user_detail = UserDetail.objects.get(extUser=user)
-                            sendSMS(user_detail.mobile_no, sms_message)
-                            # sendNotification(user, notification_message)
+    
+                            if user.is_active:
+                                sendSMS(user_detail.mobile_no, sms_message)
+                                # sendNotification(user, notification_message)
 
-                            try:
-                                noti_auth = NotificationAuth.objects.get(user_to_auth=user)
-                                noti_token = noti_auth.noti_token
-                                sendNotification(noti_token, extractedTicket.inboxMessage.subject, notification_message)
-                            except NotificationAuth.DoesNotExist:
-                                print(f"NotificationAuth entry not found for user {user.username}. Notification not sent.")
+                                try:
+                                    noti_auth = NotificationAuth.objects.get(user_to_auth=user)
+                                    noti_token = noti_auth.noti_token
+                                    sendNotification(noti_token, extractedTicket.inboxMessage.subject, notification_message)
+                                except NotificationAuth.DoesNotExist:
+                                    print(f"NotificationAuth entry not found for user {user.username}. Notification not sent.")
+                            else:
+                                print(f"User {user.username} is inactive. SMS and notification not sent.")
+
                 else:
                         print(f"Ticket {extractedTicket.ticketname} is not satisfied. Skipping report generation.")
             
