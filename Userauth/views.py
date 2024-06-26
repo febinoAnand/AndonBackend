@@ -752,7 +752,7 @@ def generate_otp():
 
 
 def SendOTPSMS(number,OTPno):
-    otpmessage = "Verification Code: {OTP}".format(OTP= OTPno)
+    otpmessage = "IFM Email Tracking\nVerification Code: {OTP}".format(OTP= OTPno)
     print ("OTP Sent",otpmessage)
     SMSgateway.sendSMS(number,otpmessage)
 
