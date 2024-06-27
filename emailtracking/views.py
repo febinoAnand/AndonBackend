@@ -22,34 +22,44 @@ class InboxViewSet(viewsets.ModelViewSet):
     queryset = Inbox.objects.all()
     serializer_class = InboxSerializer
     http_method_names = ['get','delete']
-
+    permission_classes = [IsAuthenticated]
 
 
 class TicketViewSet(viewsets.ModelViewSet):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
     http_method_names = ['get','delete']
+    permission_classes = [IsAuthenticated]
 
 
 class EmailIDViewSet(viewsets.ModelViewSet):
     queryset = EmailID.objects.all()
     serializer_class = EmailIDSerializer
+    permission_classes = [IsAuthenticated]
 
 
 class ReportViewSet(viewsets.ModelViewSet):
     queryset = Report.objects.all()
     serializer_class = ReportSerializer
     http_method_names = ['get','delete']
+    permission_classes = [IsAuthenticated]
+
 
 class DepartmentViewSet(viewsets.ModelViewSet):
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
+    permission_classes = [IsAuthenticated]
+
 
 class SettingViewSet(viewsets.ModelViewSet):
     queryset = Setting.objects.all()
     serializer_class = SettingSerializer
+    permission_classes = [IsAuthenticated]
+
 
 class DashboardStatistics(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
         User = get_user_model()
         total_users = User.objects.count()
