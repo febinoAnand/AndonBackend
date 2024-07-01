@@ -920,106 +920,53 @@ class GroupViewSet(viewsets.ModelViewSet):
 
 class LoginView(APIView):
     def post(self, request, *args, **kwargs):
-
-        ########################### POST FLOW ##################################
-
-        #check valid Json data in request 
-        jsondata = {}
+        # Check valid JSON data in request
         try:
             jsondata = json.loads(request.body)
-            print(jsondata)
         except Exception as e:
-            print (e)                       #TODO : save the exception in Log File
-            return HttpResponseNotFound()
-        
-        
-        #check app_token valid with Settings...
-        if "app_token" not in jsondata:
-            return HttpResponseNotFound()
-        
-        if jsondata["app_token"] != settings.APP_TOKEN:
+            print(e)  # TODO: save the exception in Log File
             return HttpResponseNotFound()
 
+        # Check app_token validity
+        if "app_token" not in jsondata or jsondata["app_token"] != settings.APP_TOKEN:
+            return HttpResponseNotFound()
 
-        #Validate the Post Data....
+        # Validate the POST data
         serializer = LoginSerializer(data=jsondata)
         if not serializer.is_valid():
             return HttpResponseBadRequest()
-
-
-        #getting currentDate and Time
-        currentDate = datetime.now().strftime("%Y-%m-%d")
-        currentTime = datetime.now().strftime("%H:%M:%S")
-        currentDateTime = datetime.now()
-        # print (currentDate,currentTime)
-
-        ########################### POST FLOW  END HERE ##################################
-        # serializer = LoginSerializer(data=request.data)
-        # serializer.is_valid(raise_exception=True)
 
         username = serializer.validated_data['username']
         password = serializer.validated_data['password']
         device_id = serializer.validated_data['device_id']
         notification_id = serializer.validated_data['notification_id']
 
-        # if app_token != settings.APP_TOKEN:  
-        #     return Response(status=status.HTTP_400_BAD_REQUEST)
-
         user = User.objects.filter(username=username).first()
 
         if user and not user.is_active:
-                # user_detail = UserDetail.objects.filter(extUser=user).first()
-                return Response({'status': 'INACTIVE','message': 'Your Acount is in Inactive'}, status=status.HTTP_200_OK)
-        
+            return Response({'status': 'INACTIVE', 'message': 'Your Account is Inactive'}, status=status.HTTP_200_OK)
+
         user_detail = UserDetail.objects.filter(extUser=user).first()
         if user_detail and device_id in user_detail.device_id:
             if user and user.check_password(password):
-                
+                token, created = Token.objects.get_or_create(user=user)
 
-            
-                existing_token = self.get_existing_token(request, user.id)
-                if existing_token:
-                  
-                    notification_auth = NotificationAuth.objects.filter(user_to_auth=user).first()
-                    if notification_auth:
-                        notification_auth.noti_token = notification_id
-                        notification_auth.save()
-                    else:
-                        NotificationAuth.objects.create(user_to_auth=user, noti_token=notification_id)
-                    
-                    return Response({
-                        'status': 'OK',
-                        'token': existing_token,
-                        'message': 'Login successful'
-                    })
-
-                token = str(uuid.uuid4())
-                request.session[token] = user.id
-              
                 notification_auth = NotificationAuth.objects.filter(user_to_auth=user).first()
                 if notification_auth:
                     notification_auth.noti_token = notification_id
                     notification_auth.save()
                 else:
                     NotificationAuth.objects.create(user_to_auth=user, noti_token=notification_id)
-                    
+
                 return Response({
                     'status': 'OK',
-                    'token': token,
+                    'token': token.key,
                     'message': 'Login successful'
                 })
-            return Response({'status': 'INVALID','message': 'Invalid Credentials'}, status=status.HTTP_200_OK)
+
+            return Response({'status': 'INVALID', 'message': 'Invalid Credentials'}, status=status.HTTP_200_OK)
         else:
-            return Response({'status': 'DEVICE_MISMATCH','message': 'Account already used in another device. Redo Registration'}, status=status.HTTP_200_OK)
-
-        
-
-    def get_existing_token(self, request, user_id):
-        for key, value in request.session.items():
-            if value == user_id:
-                return key
-        return None
-    
+            return Response({'status': 'DEVICE_MISMATCH', 'message': 'Account already used in another device. Redo Registration'}, status=status.HTTP_200_OK)
 
                                    #user_Logout_view#
 @method_decorator(login_required, name='dispatch')
@@ -1126,17 +1073,20 @@ class DeleteUserView(APIView):
 
         return Response({"success": "User and related details deleted"}, status=status.HTTP_200_OK)
     
-
+    
+    
 class WebLoginView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = WebLoginSerializer(data=request.data)
         if serializer.is_valid():
             username = serializer.validated_data['username']
             password = serializer.validated_data['password']
+
             user = authenticate(request, username=username, password=password)
             if user is not None:
-                login(request, user)
                 token, created = Token.objects.get_or_create(user=user)
+                if not request.user.is_authenticated:
+                    login(request, user)
                 return Response({'status': 'OK', 'message': 'Login successful', 'token': token.key})
             return Response({'status': 'INVALID', 'message': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
